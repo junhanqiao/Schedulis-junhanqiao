@@ -61,6 +61,10 @@ public class MySQLDataSource extends AzkabanDataSource {
     setMaxTotal(numConnections);
     setValidationQuery("/* ping */ select 1");
     setTestOnBorrow(true);
+    setTestWhileIdle(true);
+    setTimeBetweenEvictionRunsMillis(1000*60*1);
+    setMinEvictableIdleTimeMillis(1000*60*5);
+    setMaxConnLifetimeMillis(1000*60*10); 
   }
   /**
    * This method overrides {@link BasicDataSource#getConnection()}, in order to have retry logics.
