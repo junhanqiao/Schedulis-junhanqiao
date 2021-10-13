@@ -35,7 +35,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
-
+import org.apache.http.client.config.RequestConfig;
 /**
  * class handles the communication between the application and a Restful API based web server.
  *
@@ -123,6 +123,9 @@ public abstract class RestfulApiClient<T> {
     }
 
     final HttpPost post = new HttpPost(uri);
+    RequestConfig rqConfig = RequestConfig.custom().setSocketTimeout(60000).setConnectionRequestTimeout(20000).build();
+    post.setConfig(rqConfig);
+    
     return this.sendAndReturn(completeRequest(post, params));
   }
 

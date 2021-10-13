@@ -16,6 +16,7 @@
 
 package azkaban.trigger.builtin;
 
+import azkaban.dep.DepService;
 import azkaban.executor.ExecutableFlow;
 import azkaban.executor.ExecutionOptions;
 import azkaban.executor.ExecutorManagerAdapter;
@@ -45,6 +46,7 @@ public class ExecuteFlowAction implements TriggerAction {
   private static TriggerManager triggerManager;
   private static ProjectManager projectManager;
   private static SystemManager systemManager;
+  private static DepService depService;
   private static Logger logger = LoggerFactory.getLogger(ExecuteFlowAction.class);
   private final String actionId;
   private final String projectName;
@@ -116,6 +118,14 @@ public class ExecuteFlowAction implements TriggerAction {
 
   public static void setProjectManager(final ProjectManager projectManager) {
     ExecuteFlowAction.projectManager = projectManager;
+  }
+
+  public static DepService getDepService() {
+    return depService;
+  }
+
+  public static void setDepService(DepService depService) {
+    ExecuteFlowAction.depService = depService;
   }
 
   public static TriggerAction createFromJson(final HashMap<String, Object> obj) {
@@ -297,6 +307,15 @@ public class ExecuteFlowAction implements TriggerAction {
     logger.info("Invoking flow " + project.getName() + "." + this.flowName);
     executorManagerAdapter.submitExecutableFlow(exflow, this.submitUser);
     logger.info("Invoked flow " + project.getName() + "." + this.flowName);
+
+    if (depService != null) {
+      try {
+        depService.newCronFlowExeSubmited(exflow);
+      } catch (Exception e) {
+        String errMsg = String.format("depService newCronFlowExeSubmited resolve failed:projectId %d,projectName %s,flowId:%s,exec_id:%d", exflow.getProjectId(), exflow.getProjectName(), exflow.getFlowId(), exflow.getExecutionId());
+        logger.error(errMsg, e);
+      }
+    }
   }
 
   @Override

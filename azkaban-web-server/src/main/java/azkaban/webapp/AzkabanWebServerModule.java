@@ -17,6 +17,8 @@
 
 package azkaban.webapp;
 
+import azkaban.dep.DepDao;
+import azkaban.dep.JdbcDepDaoImpl;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 
@@ -86,6 +88,7 @@ public class AzkabanWebServerModule extends AbstractModule {
     bind(ScheduleLoader.class).to(TriggerBasedScheduleLoader.class);
     bind(FlowTriggerInstanceLoader.class).to(JdbcFlowTriggerInstanceLoaderImpl.class);
     bind(ExecutorManagerAdapter.class).to(resolveExecutorManagerAdaptorClassType());
+    bind(DepDao.class).to(JdbcDepDaoImpl.class);
   }
 
   private Class<? extends ExecutorManagerAdapter> resolveExecutorManagerAdaptorClassType() {

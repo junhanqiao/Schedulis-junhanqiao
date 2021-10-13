@@ -16,6 +16,7 @@
 
 package azkaban.webapp;
 
+import azkaban.dep.DepManager;
 import azkaban.executor.Status;
 import azkaban.server.HttpRequestUtils;
 import com.google.inject.Guice;
@@ -182,7 +183,7 @@ public class AzkabanWebServer extends AzkabanServer {
   private Map<String, TriggerPlugin> triggerPlugins;
   private MBeanServer mbeanServer;
   private final AlerterHolder alerterHolder;
-
+  private final DepManager depManager;
 
   @Inject
   public AzkabanWebServer(final Props props,
@@ -198,7 +199,8 @@ public class AzkabanWebServer extends AzkabanServer {
       final FlowTriggerScheduler scheduler,
       final FlowTriggerService flowTriggerService,
       final StatusService statusService,
-      final AlerterHolder alerterHolder) {
+      final AlerterHolder alerterHolder,
+      final DepManager depManager) {
     this.props = requireNonNull(props, "props is null.");
     this.server = requireNonNull(server, "server is null.");
     this.executorManagerAdapter = requireNonNull(executorManagerAdapter,"executorManagerAdapter is null.");
@@ -213,6 +215,7 @@ public class AzkabanWebServer extends AzkabanServer {
     this.scheduler = requireNonNull(scheduler, "scheduler is null.");
     this.flowTriggerService = requireNonNull(flowTriggerService, "flow trigger service is null");
     this.alerterHolder = requireNonNull(alerterHolder, "eventStatusManager is null");
+    this.depManager=requireNonNull(depManager);
     loadBuiltinCheckersAndActions();
 
     // load all trigger agents here
@@ -546,6 +549,14 @@ public class AzkabanWebServer extends AzkabanServer {
       logger.warn("serer start failed", e);
       Utils.croak(e.getMessage(), 1);
     }
+    //start depManager
+    try {
+      this.depManager.start();
+      logger.info("depManager started");
+    } catch (final Exception e) {
+      logger.warn("depManager start failed", e);
+      Utils.croak(e.getMessage(), 1);
+    }
   }
 
   private void stopAllCycleFlows(String[] args) throws ExecutorManagerException {
@@ -600,6 +611,7 @@ public class AzkabanWebServer extends AzkabanServer {
     ExecuteFlowAction.setProjectManager(this.projectManager);
     ExecuteFlowAction.setTriggerManager(this.triggerManager);
     ExecuteFlowAction.setSystemManager(this.transitionService.getSystemManager());
+    ExecuteFlowAction.setDepService(this.depManager.getDepService());
     KillExecutionAction.setExecutorManager(this.executorManagerAdapter);
     CreateTriggerAction.setTriggerManager(this.triggerManager);
     ExecutionChecker.setExecutorManager(this.executorManagerAdapter);

@@ -668,3 +668,41 @@ values ("UPLOADPROJECTS", 0x0008000, 1, "上传项目权限", UNIX_TIMESTAMP(CUR
 INSERT INTO `cfg_webank_organization` (`dp_id`, `pid`, `dp_name`, `dp_ch_name`, `org_id`, `org_name`, `division`) VALUES (9999999, 100000, '', '临时部门', 9999999, '临时室', 'null');
 
 INSERT INTO `wtss_user` (`user_id`, `username`, `password`, `full_name`, `department_id`, `department_name`, `email`, `proxy_users`, `role_id`, `user_type`, `create_time`, `update_time`) VALUES ('wtss_superadmin', 'superadmin', 'A4E43077D68F3E1F90AD69FF22058E59', 'superadmin', 9999999, '临时部门', '', 'hadoop', 1, 1, 1534408644414, 1534408644414);
+
+
+
+
+ CREATE TABLE `dep_flow_instance` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `flow_id` varchar(128) NOT NULL,
+  `time_id` datetime NOT NULL,
+  `status` int(11) NOT NULL,
+  `exec_id` int(11) DEFAULT NULL,
+   create_time TIMESTAMP,
+   modify_time TIMESTAMP,
+  primary key(id),
+  UNIQUE KEY `dep_flow_instance_logic_key` (`time_id`,`project_id`,`flow_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ CREATE TABLE `dep_flow_instance_exec` (
+  `flow_instance_id` INT(11) NOT NULL,
+  `exec_id` int(11) DEFAULT NULL,
+  `status` int(11) NOT NULL,
+  begin_time TIMESTAMP,
+  end_time TIMESTAMP,
+  create_time TIMESTAMP,
+  modify_time TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ CREATE TABLE `dep_flow_relation` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `depended_project_id` int(11) NOT NULL,
+  `depended_flow_id` varchar(128) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `flow_id` varchar(128) NOT NULL,
+  create_time TIMESTAMP,
+  modify_time TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
