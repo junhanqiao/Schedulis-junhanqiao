@@ -9,22 +9,27 @@ import javax.inject.Singleton;
 @Singleton
 public class DepManager {
     private static final Logger logger = LoggerFactory.getLogger(DepManager.class);
-
+    private static final int runInterval=10*1000;
     private final DepService depService;
-    private final DepExeStatSyncThread depExeStatSyncThread;
-    private final DepShedulerThread depShedulerThread;
-    private final DepSubmitterThread depSubmitterThread;
+    private final DepDaemonServiceThread depExeStatSyncThread;
+    private final DepDaemonServiceThread depShedulerThread;
+    private final DepDaemonServiceThread depSubmitterThread;
+
+    private final DepDaemonTask depExeStatSyncTask;
+    private final DepDaemonTask depSchedulerTask;
+    private final DepDaemonTask depSubmitterTask;
 
     @Inject
     public DepManager(DepService depService) {
         this.depService = depService;
-        this.depExeStatSyncThread = new DepExeStatSyncThread(depService);
-        this.depExeStatSyncThread.setName("dep-exe-stat-sync");
+        this.depExeStatSyncTask = new DepExeStatSyncDaemonTask(depService);
+        this.depExeStatSyncThread = new DepDaemonServiceThread(this.depExeStatSyncTask,"dep-exe-stat-sync",runInterval);
 
-        this.depShedulerThread = new DepShedulerThread(depService);
-        this.depShedulerThread.setName("dep-scheduler");
-        this.depSubmitterThread = new DepSubmitterThread(depService);
-        this.depSubmitterThread.setName("dep-submmiter");
+        this.depSchedulerTask=new DepSchedulerDaemonTask(depService);
+        this.depShedulerThread = new DepDaemonServiceThread(this.depSchedulerTask,"dep-scheduler",runInterval);
+
+        this.depSubmitterTask=new DepSubitterDaemonTask(depService);
+        this.depSubmitterThread = new DepDaemonServiceThread(this.depSubmitterTask,"dep-submmiter",runInterval);
     }
 
     public void start() {
