@@ -3,7 +3,7 @@ package azkaban.dep;
 public enum DepFlowInstanceStatus {
     INIT("INIT", 0),
     READY("READY", 1),
-    SUBMITED("SUBMITED", 2),
+    SUBMITTED("SUBMITTED", 2),
     SUCCESS("SUCCESS", 3),
     FAILED("FAILED", 4);
 

@@ -13,13 +13,13 @@ public interface DepDao {
 
     int initDependentInstance(DepFlowInstance instance) throws SQLException;
 
-    int updateStatusForReadedIntance() throws SQLException;
+    int updateStatusForReadyedIntance() throws SQLException;
 
-    void newDepFlowInstance(int projectId, String flowId, LocalDateTime timeId, DepFlowInstanceStatus status, int executionId) throws SQLException;
+    void newDepFlowInstance(DepFlowInstance instance) throws SQLException;
 
     DepFlowInstance getOneDepFlowInstance(int projectId, String flowId, LocalDateTime timeId) throws SQLException;
 
-    List<DepFlowInstance> getReadyedDepFlowInstances() throws SQLException;
+    List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException;
 
     int updateFlowInstanceSubmitted(DepFlowInstance depFlowInstance, ExecutableFlow exflow) throws SQLException;
 }

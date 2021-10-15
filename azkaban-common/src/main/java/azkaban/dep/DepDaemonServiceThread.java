@@ -24,7 +24,7 @@ public class DepDaemonServiceThread extends Thread {
 
     @Override
     public void run() {
-        logger.info(this.getName()+"start running");
+        logger.info("Thread {}  start running", this.getName());
         while (!this.shutdown) {
 
             try {
@@ -40,6 +40,6 @@ public class DepDaemonServiceThread extends Thread {
                 logger.error(this.errMsg, e);
             }
         }
-        logger.info(this.getName()+" quit ");
+        logger.warn(this.getName() + " quit ");
     }
 }

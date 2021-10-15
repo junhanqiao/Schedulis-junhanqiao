@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -21,7 +22,6 @@ import java.util.Set;
 @Singleton
 public class DepService {
     private static final Logger logger = LoggerFactory.getLogger(DepService.class);
-    public static final DateTimeFormatter timeIdFormater=DateTimeFormatter.ofPattern("");
     private final DepDao depDao;
     private final ExecutionFlowDao executionFlowDao;
     private final ProjectManager projectManager;
@@ -47,10 +47,21 @@ public class DepService {
         DepFlowInstance instance = this.depDao.getOneDepFlowInstance(exflow.getProjectId(), exflow.getFlowId(), timeId);
 
         if (instance != null) {
-            logger.error("flow instance already exist:" + instance);
-
+            logger.error("DepFlowInstance already exist:{}", instance);
         } else {
-            this.depDao.newDepFlowInstance(exflow.getProjectId(), exflow.getFlowId(), timeId, DepFlowInstanceStatus.SUBMITED, exflow.getExecutionId());
+            instance = new DepFlowInstance(
+                    -1,
+                    exflow.getProjectId(),
+                    exflow.getFlowId(),
+                    timeId,
+                    DepFlowInstanceStatus.SUBMITTED,
+                    exflow.getExecutionId(),
+                    Instant.now(),
+                    Instant.now());
+
+            this.depDao.newDepFlowInstance(instance);
+
+            logger.info("cron-triggered DepFlowInstance added :{}", instance);
         }
 
     }
@@ -59,29 +70,34 @@ public class DepService {
         return this.depDao.getDepFlowInstancesNeedSync();
     }
 
-    public void syncExeStat(DepFlowInstance depFlowInstance) throws ExecutorManagerException, SQLException {
+    public void syncExeStatus(DepFlowInstance depFlowInstance) throws ExecutorManagerException, SQLException {
+        logger.debug("syncing exe stat for:{}", depFlowInstance);
+
         ExecutableFlow executableFlow = this.executionFlowDao.fetchExecutableFlow(depFlowInstance.getExecId());
-
         Status status = executableFlow.getStatus();
-        DepFlowInstanceStatus depFlowInstanceStatus = depFlowInstance.getStatus();
 
-        if (Status.isStatusFinished(status) && depFlowInstanceStatus == DepFlowInstanceStatus.SUBMITED) {
+        logger.debug("executableFlow status:{}, {}", status, depFlowInstance);
+
+        if (Status.isStatusFinished(status)) {
             DepFlowInstanceStatus newDepFlowStatus = Status.isSucceeded(status) ? DepFlowInstanceStatus.SUCCESS : DepFlowInstanceStatus.FAILED;
             this.depDao.syncExeStat(depFlowInstance, newDepFlowStatus);
-            if (newDepFlowStatus == DepFlowInstanceStatus.SUCCESS) {
-                this.depDao.initDependentInstance(depFlowInstance);
-            }
-        } else {
 
+            logger.info("flow execution finished, status is:{} ,change depFlowInstance status to :{},{}", status, newDepFlowStatus, depFlowInstance);
+
+            if (newDepFlowStatus == DepFlowInstanceStatus.SUCCESS) {
+                int rowsInsert = this.depDao.initDependentInstance(depFlowInstance);
+                logger.info("{} dependent instances init success for:{}", rowsInsert, depFlowInstance);
+            }
         }
     }
 
     public void scheduleReadyService() throws SQLException {
-        this.depDao.updateStatusForReadedIntance();
+        int effectedRows = this.depDao.updateStatusForReadyedIntance();
+        logger.info("{} instances becamed ready", effectedRows);
     }
 
-    public List<DepFlowInstance> getReadyedDepFlowInstances() throws SQLException {
-        return this.depDao.getReadyedDepFlowInstances();
+    public List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException {
+        return this.depDao.getReadyDepFlowInstances();
     }
 
     public void submitExecution(DepFlowInstance depFlowInstance) throws ExecutorManagerException {
@@ -108,14 +124,16 @@ public class DepService {
 
         final String message = this.executorManagerAdapter.submitExecutableFlow(exflow, userId);
 
-        logger.info(message);
+        logger.info("submit flow execution finish,message:{}", message);
 
         try {
             this.depDao.updateFlowInstanceSubmitted(depFlowInstance, exflow);
+            logger.info("DepFlowInstance changed to status SUBMITTED success,exeId:{},{}", exflow.getExecutionId(), depFlowInstance);
         } catch (Exception e) {
             String errMsg = String.format("depService submitExecution resolve failed:projectId %d,projectName %s,flowId:%s,exec_id:%d", exflow.getProjectId(), exflow.getProjectName(), exflow.getFlowId(), exflow.getExecutionId());
             logger.error(errMsg, e);
         }
+
 
     }
 

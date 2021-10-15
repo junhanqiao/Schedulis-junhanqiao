@@ -16,9 +16,14 @@ public class DepSubitterDaemonTask implements DepDaemonTask {
 
     @Override
     public void run() throws Exception {
-        List<DepFlowInstance> instances = depService.getReadyedDepFlowInstances();
+        List<DepFlowInstance> instances = depService.getReadyDepFlowInstances();
         for (int i = 0; i < instances.size(); i++) {
             DepFlowInstance depFlowInstance = instances.get(i);
+
+            if (depFlowInstance.getStatus() != DepFlowInstanceStatus.READY) {
+                logger.warn("DepFlowInstance status not READY,skip submit to excute:{}", depFlowInstance);
+                continue;
+            }
             try {
                 depService.submitExecution(depFlowInstance);
             } catch (Exception e) {

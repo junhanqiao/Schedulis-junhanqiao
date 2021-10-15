@@ -107,7 +107,8 @@ public class DepFlowInstance {
     @Override
     public String toString() {
         return "DepFlowInstance{" +
-                "projectId=" + projectId +
+                "id=" + id +
+                ", projectId=" + projectId +
                 ", flowId='" + flowId + '\'' +
                 ", timeId=" + timeId +
                 ", status=" + status +
