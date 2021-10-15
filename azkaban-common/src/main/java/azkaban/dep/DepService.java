@@ -91,9 +91,9 @@ public class DepService {
         }
     }
 
-    public void scheduleReadyService() throws SQLException {
+    public int scheduleReadyService() throws SQLException {
         int effectedRows = this.depDao.updateStatusForReadyedIntance();
-        logger.info("{} instances becamed ready", effectedRows);
+        return  effectedRows;
     }
 
     public List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException {

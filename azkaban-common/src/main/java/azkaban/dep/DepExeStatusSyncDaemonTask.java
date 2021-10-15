@@ -1,5 +1,6 @@
 package azkaban.dep;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,13 @@ public class DepExeStatusSyncDaemonTask implements DepDaemonTask {
     public void run() throws Exception {
 
         List<DepFlowInstance> instances = depService.getDepFlowInstancesNeedSync();
+
+        if (CollectionUtils.isEmpty(instances)) {
+            return;
+        }
+
+        logger.info("{} instance need sync execution status", instances.size());
+
         for (int i = 0; i < instances.size(); i++) {
             DepFlowInstance depFlowInstance = instances.get(i);
 

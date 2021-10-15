@@ -1,5 +1,6 @@
 package azkaban.dep;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,13 @@ public class DepSubitterDaemonTask implements DepDaemonTask {
     @Override
     public void run() throws Exception {
         List<DepFlowInstance> instances = depService.getReadyDepFlowInstances();
+
+        if (CollectionUtils.isEmpty(instances)) {
+            return;
+        }
+
+        logger.info("{} ready instances need submit execution", instances.size());
+
         for (int i = 0; i < instances.size(); i++) {
             DepFlowInstance depFlowInstance = instances.get(i);
 
