@@ -4,7 +4,6 @@ import azkaban.db.DatabaseOperator;
 import azkaban.db.SQLTransaction;
 import azkaban.executor.ExecutableFlow;
 import org.apache.commons.dbutils.ResultSetHandler;
-import org.apache.commons.net.ntp.TimeStamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,10 +24,11 @@ public class JdbcDepDaoImpl implements DepDao {
     private final DatabaseOperator dbOperator;
     static final String UPDATE_DEP_FLOW_INSTANCES_STATUS = "UPDATE dep_flow_instance set status=?,modify_time=now() where id=? and status=?";
     static final String INSERT_DEPENDENT_INSTANCE = "insert into dep_flow_instance(project_id,flow_id,time_id,status,create_time,modify_time)\n" +
-            "select r.project_id,r.flow_id ,? as time_id,?,now(),now() from  dep_flow_relation r  where r.depended_project_id=? and r.depended_flow_id=?  and not exists (select i.* from dep_flow_instance i where i.project_id=r.project_id and i.flow_id=r.flow_id and i.time_id=?)";
+            " select r.project_id,r.flow_id ,? as time_id,?,now(),now() from  dep_flow_relation r  where r.depended_project_id=? and r.depended_flow_id=?  \n" +
+            " ON DUPLICATE KEY update status=?,modify_time=now()";
     static final String INSERT_DEP_FLOW_INSTANCE ="insert into dep_flow_instance(project_id,flow_id,time_id,status,exec_id,create_time,modify_time) values (?,?,?,?,?,?,?)";
 
-    static final String UPDATE_STATUS_FOR_READED_INSTANCE = "update dep_flow_instance i,\n" +
+    static final String UPDATE_STATUS_FOR_READYED_INSTANCE = "update dep_flow_instance i,\n" +
             "(select i.id \n" +
             "from dep_flow_instance i join dep_flow_relation  r on (i.project_id =r.project_id  and i.flow_id =r.flow_id ) \n" +
             "join dep_flow_instance id on (id.project_id =r.depended_project_id  and id.flow_id =r.depended_flow_id  and id.time_id =i.time_id )\n" +
@@ -59,12 +59,12 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public int initDependentInstance(DepFlowInstance instance) throws SQLException {
-        int effectRows = this.dbOperator.update(INSERT_DEPENDENT_INSTANCE, instance.getTimeId(), DepFlowInstanceStatus.INIT.getValue(), instance.getProjectId(), instance.getFlowId(), instance.getTimeId());
+        int effectRows = this.dbOperator.update(INSERT_DEPENDENT_INSTANCE, instance.getTimeId(), DepFlowInstanceStatus.INIT.getValue(), instance.getProjectId(), instance.getFlowId(), DepFlowInstanceStatus.INIT.getValue());
         return effectRows;
     }
 
     public int updateStatusForReadyedIntance() throws SQLException {
-        int efectRows = this.dbOperator.update(UPDATE_STATUS_FOR_READED_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), DepFlowInstanceStatus.SUCCESS.getValue(),DepFlowInstanceStatus.READY.getValue());
+        int efectRows = this.dbOperator.update(UPDATE_STATUS_FOR_READYED_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), DepFlowInstanceStatus.SUCCESS.getValue(),DepFlowInstanceStatus.READY.getValue());
         return efectRows;
     }
 
