@@ -702,7 +702,8 @@ INSERT INTO `wtss_user` (`user_id`, `username`, `password`, `full_name`, `depart
   `project_id` int(11) NOT NULL,
   `flow_id` varchar(128) NOT NULL,
   create_time TIMESTAMP,
-  modify_time TIMESTAMP
+  modify_time TIMESTAMP,
+  primary key(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
