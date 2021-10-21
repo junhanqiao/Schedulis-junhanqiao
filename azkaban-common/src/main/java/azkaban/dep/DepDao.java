@@ -22,4 +22,8 @@ public interface DepDao {
     List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException;
 
     int updateFlowInstanceSubmitted(DepFlowInstance depFlowInstance, ExecutableFlow exflow) throws SQLException;
+
+    int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException;
+
+    int redoDepFlowInstanceForCron(DepFlowInstance instance) throws SQLException;
 }

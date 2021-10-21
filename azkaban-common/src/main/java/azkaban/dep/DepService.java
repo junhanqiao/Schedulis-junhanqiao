@@ -47,7 +47,9 @@ public class DepService {
         DepFlowInstance instance = this.depDao.getOneDepFlowInstance(exflow.getProjectId(), exflow.getFlowId(), timeId);
 
         if (instance != null) {
-            logger.error("DepFlowInstance already exist:{}", instance);
+            logger.error("DepFlowInstance already exist,will redo:{}", instance);
+            int effectedRows = this.depDao.redoDepFlowInstanceForCron(instance);
+            logger.info("DepFlowInstance redo {} rows, instance:{}", effectedRows, instance);
         } else {
             instance = new DepFlowInstance(
                     -1,
@@ -63,6 +65,13 @@ public class DepService {
 
             logger.info("cron-triggered DepFlowInstance added :{}", instance);
         }
+
+    }
+
+    private int redoDepFlowInstance(DepFlowInstance instance) throws SQLException {
+        int effectedRows = this.depDao.updateStatusForRedoedIntance(instance);
+        logger.info("DepFlowInstance redo {} rows, instance:{}", effectedRows, instance);
+        return effectedRows;
 
     }
 
@@ -93,7 +102,7 @@ public class DepService {
 
     public int scheduleReadyService() throws SQLException {
         int effectedRows = this.depDao.updateStatusForReadyedIntance();
-        return  effectedRows;
+        return effectedRows;
     }
 
     public List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException {

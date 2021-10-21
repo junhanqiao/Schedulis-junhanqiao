@@ -42,6 +42,7 @@ public class JdbcDepDaoImpl implements DepDao {
 
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS="select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE="update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
+    static final String UPATE_REDOED_DEP_INSTANCE="update dep_flow_instance set status=?,modify_time=now() where id=? and status= ? and modify_time=?";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -103,11 +104,21 @@ public class JdbcDepDaoImpl implements DepDao {
         return this.dbOperator.query(QUERY_DEP_FLOW_INSTANCE_BY_STATUS,new FetchDepFlowInstanceHandler(),DepFlowInstanceStatus.READY.getValue(),1000);
     }
 
-    @Override
+
     public int updateFlowInstanceSubmitted(DepFlowInstance depFlowInstance, ExecutableFlow exflow) throws SQLException {
         int effectRows = this.dbOperator.update(UPATE_SUBMITTED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), exflow.getExecutionId(), depFlowInstance.getId(),DepFlowInstanceStatus.READY.getValue());
         return effectRows;
 
+    }
+
+    public int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException {
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), instance.getId(),instance.getStatus().getValue(),Timestamp.from(instance.getModifyTime()));
+        return effectRows;
+    }
+
+    public int redoDepFlowInstanceForCron(DepFlowInstance instance) throws SQLException {
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), instance.getId(),instance.getStatus().getValue(),Timestamp.from(instance.getModifyTime()));
+        return effectRows;
     }
 
     public static class FetchDepFlowInstanceHandler implements
