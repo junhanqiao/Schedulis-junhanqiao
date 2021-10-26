@@ -44,12 +44,14 @@ public class DepService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime timeId = LocalDateTime.of(now.getYear(), now.getMonth(), now.getDayOfMonth(), 0, 0);
 
+        int exeId = exflow.getExecutionId();
+
         DepFlowInstance instance = this.depDao.getOneDepFlowInstance(exflow.getProjectId(), exflow.getFlowId(), timeId);
 
         if (instance != null) {
-            logger.error("DepFlowInstance already exist,will redo:{}", instance);
-            int effectedRows = this.depDao.redoDepFlowInstanceForCron(instance);
-            logger.info("DepFlowInstance redo {} rows, instance:{}", effectedRows, instance);
+            logger.warn("DepFlowInstance already exist,will redo,new execId:{},instance:{}", exeId, instance);
+            int effectedRows = this.depDao.redoDepFlowInstanceForCron(instance, exeId);
+            logger.info("DepFlowInstance redo {} rows, new execId:{},instance:{}", effectedRows, exeId, instance);
         } else {
             instance = new DepFlowInstance(
                     -1,
@@ -57,7 +59,7 @@ public class DepService {
                     exflow.getFlowId(),
                     timeId,
                     DepFlowInstanceStatus.SUBMITTED,
-                    exflow.getExecutionId(),
+                    exeId,
                     Instant.now(),
                     Instant.now());
 

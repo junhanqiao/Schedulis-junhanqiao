@@ -25,5 +25,5 @@ public interface DepDao {
 
     int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException;
 
-    int redoDepFlowInstanceForCron(DepFlowInstance instance) throws SQLException;
+    int redoDepFlowInstanceForCron(DepFlowInstance instance, int executionId) throws SQLException;
 }
