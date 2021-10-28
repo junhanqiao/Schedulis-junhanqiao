@@ -23,6 +23,7 @@
         <module>az-flow-trigger-dependency-plugin</module>
         <module>azkaban-web-server</module>
         <module>azkaban-exec-server</module>
+        <module>az-dep-manager</module>
     </modules>
 
     <properties>
