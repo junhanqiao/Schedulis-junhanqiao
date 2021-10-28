@@ -3,10 +3,8 @@
     <a-button type="primary" @click="handleAdd">
       新增依赖
     </a-button>      
-    <DepRelationSearchForm :searchCallBack='searchCallBack'/>
-
-    <div>
-        <a-table bordered :data-source="tableData" :columns="columns" :rowKey="`id`">
+    <DepRelationSearchForm :searchCallBack='searchCallBack'>
+        <a-table bordered :data-source="tableData" :columns="columns" :rowKey="`id`" :pagination='false'>
             <template slot="operation" slot-scope="text, record">
                 <a-popconfirm
                 v-if="tableData.length"
@@ -17,7 +15,7 @@
                 </a-popconfirm>
             </template>
         </a-table>
-    </div>
+    </DepRelationSearchForm>
     <DepRelationAddForm :visible='addFormVisible' :okCallBack='addOk' :cancelCallBack='addCancel'/>
   </div>
   
