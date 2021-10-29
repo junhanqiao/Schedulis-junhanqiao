@@ -2,8 +2,10 @@ package azkaban.dep;
 
 import azkaban.db.DatabaseOperator;
 import azkaban.db.SQLTransaction;
+import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
 import org.apache.commons.dbutils.ResultSetHandler;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +28,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String INSERT_DEPENDENT_INSTANCE = "insert into dep_flow_instance(project_id,flow_id,time_id,status,create_time,modify_time)\n" +
             " select r.project_id,r.flow_id ,? as time_id,?,now(),now() from  dep_flow_relation r  where r.depended_project_id=? and r.depended_flow_id=?  \n" +
             " ON DUPLICATE KEY update status=?,modify_time=now()";
-    static final String INSERT_DEP_FLOW_INSTANCE ="insert into dep_flow_instance(project_id,flow_id,time_id,status,exec_id,create_time,modify_time) values (?,?,?,?,?,?,?)";
+    static final String INSERT_DEP_FLOW_INSTANCE = "insert into dep_flow_instance(project_id,flow_id,time_id,status,exec_id,create_time,modify_time) values (?,?,?,?,?,?,?)";
 
     static final String UPDATE_STATUS_FOR_READYED_INSTANCE = "update dep_flow_instance i,\n" +
             "(select i.id \n" +
@@ -38,11 +40,11 @@ public class JdbcDepDaoImpl implements DepDao {
             ") as ready_instance\n" +
             "set i.status=?\n" +
             "where i.id=ready_instance.id";
-    static final String GET_DEP_FLOW_INSTANCE_BY_LOGIC_KEY="select * from dep_flow_instance where project_id=? and flow_id=? and time_id=?";
+    static final String GET_DEP_FLOW_INSTANCE_BY_LOGIC_KEY = "select * from dep_flow_instance where project_id=? and flow_id=? and time_id=?";
 
-    static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS="select * from dep_flow_instance where status=? limit ?";
-    static final String UPATE_SUBMITTED_DEP_INSTANCE="update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
-    static final String UPATE_REDOED_DEP_INSTANCE="update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
+    static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
+    static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
+    static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -65,7 +67,7 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public int updateStatusForReadyedIntance() throws SQLException {
-        int efectRows = this.dbOperator.update(UPDATE_STATUS_FOR_READYED_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), DepFlowInstanceStatus.SUCCESS.getValue(),DepFlowInstanceStatus.READY.getValue());
+        int efectRows = this.dbOperator.update(UPDATE_STATUS_FOR_READYED_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), DepFlowInstanceStatus.SUCCESS.getValue(), DepFlowInstanceStatus.READY.getValue());
         return efectRows;
     }
 
@@ -101,24 +103,75 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException {
-        return this.dbOperator.query(QUERY_DEP_FLOW_INSTANCE_BY_STATUS,new FetchDepFlowInstanceHandler(),DepFlowInstanceStatus.READY.getValue(),1000);
+        return this.dbOperator.query(QUERY_DEP_FLOW_INSTANCE_BY_STATUS, new FetchDepFlowInstanceHandler(), DepFlowInstanceStatus.READY.getValue(), 1000);
     }
 
 
     public int updateFlowInstanceSubmitted(DepFlowInstance depFlowInstance, ExecutableFlow exflow) throws SQLException {
-        int effectRows = this.dbOperator.update(UPATE_SUBMITTED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), exflow.getExecutionId(), depFlowInstance.getId(),DepFlowInstanceStatus.READY.getValue());
+        int effectRows = this.dbOperator.update(UPATE_SUBMITTED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), exflow.getExecutionId(), depFlowInstance.getId(), DepFlowInstanceStatus.READY.getValue());
         return effectRows;
 
     }
 
     public int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException {
-        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), instance.getId(),instance.getStatus().getValue(),Timestamp.from(instance.getModifyTime()));
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
         return effectRows;
     }
 
     public int redoDepFlowInstanceForCron(DepFlowInstance instance, int executionId) throws SQLException {
-        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(),executionId, instance.getId(),instance.getStatus().getValue(),Timestamp.from(instance.getModifyTime()));
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), executionId, instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
         return effectRows;
+    }
+
+    @Override
+    public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
+        String sql = "select r.*,depedProject.name as depended_project_name,p.name  as project_name,p.create_user \n" +
+                "from dep_flow_relation r join projects depedProject on (r.depended_project_id =depedProject .id ) JOIN projects p on (r.project_id =p.id ) ";
+        String filterStr = "";
+        List<Object> params = new ArrayList<>();
+
+        boolean isFirst = true;
+        if (depedProjectId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_project_id=? ");
+            params.add(depedProjectId);
+            isFirst = false;
+        }
+        if (depedFlowId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_flow_id like ? ");
+            params.add(StringUtils.join('%', depedFlowId, '%'));
+            isFirst = false;
+        }
+        if (projectId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.project_id=? ");
+            params.add(projectId);
+            isFirst = false;
+        }
+        if (flowId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.flow_id like ? ");
+            params.add(StringUtils.join('%', flowId, '%'));
+            isFirst = false;
+        }
+        if (userName != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " p.create_user=? ");
+            params.add(userName);
+            isFirst = false;
+        }
+
+        filterStr = filterStr.trim().toLowerCase();
+        if (StringUtils.isNotBlank(filterStr)) {
+            sql = StringUtils.join(sql, " where ", filterStr);
+        }
+        //pagination
+        sql = StringUtils.join(sql, " limit ?,?");
+        int startRowNum = (pageNum - 1) * pageSize;
+        params.add(startRowNum);
+        params.add(pageSize);
+
+        logger.debug("sql:{}", sql);
+        logger.debug("params:{}", params);
+        List<DepFlowRelationDetail> result = this.dbOperator.query(sql, new FetchDepFlowRelationDetailDetailHandler(), params);
+
+        return result;
     }
 
     public static class FetchDepFlowInstanceHandler implements
@@ -150,4 +203,33 @@ public class JdbcDepDaoImpl implements DepDao {
         }
     }
 
+
+    public static class FetchDepFlowRelationDetailDetailHandler implements
+            ResultSetHandler<List<
+                    DepFlowRelationDetail>> {
+
+        @Override
+        public List<DepFlowRelationDetail> handle(ResultSet rs) throws SQLException {
+            if (!rs.next()) {
+                return Collections.emptyList();
+            }
+
+            final List<DepFlowRelationDetail> instances = new ArrayList<>();
+            do {
+                final int id = rs.getInt("id");
+                final int projectId = rs.getInt("project_id");
+                final String projectName = rs.getString("project_name");
+                final String flowId = rs.getString("flow_id");
+                final int depedProjectId = rs.getInt("depended_project_id");
+                final String depedProjectName = rs.getString("depended_project_name");
+                final String depedFlowId = rs.getString("depended_flow_id");
+                final Instant createTime = rs.getTimestamp("create_time").toInstant();
+                final Instant modifyTime = rs.getTimestamp("modify_time").toInstant();
+                DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createTime, modifyTime);
+                instances.add(instance);
+            } while (rs.next());
+
+            return instances;
+        }
+    }
 }

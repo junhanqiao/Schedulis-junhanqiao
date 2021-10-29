@@ -1,5 +1,7 @@
 package azkaban.dep;
 
+import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
 
 import java.sql.SQLException;
@@ -26,4 +28,7 @@ public interface DepDao {
     int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException;
 
     int redoDepFlowInstanceForCron(DepFlowInstance instance, int executionId) throws SQLException;
+
+    //for ui
+    List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId,String username,int pageNum,int pageSize) throws SQLException;
 }

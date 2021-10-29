@@ -167,6 +167,10 @@
                                                             onClick="navMenuClick('$!context/$viewers[1].pluginPath')">
               <a href="$!context/$viewers[1].pluginPath" style="font-size: 16px;font-weight: bold">$systemTag</a></li>
           #end
+          <li#if($current_page == $viewers[3].pluginName) class="active"#end
+                                                          onClick="navMenuClick('$!context/$viewers[3].pluginPath')">
+            <a href="$!context/$viewers[3].pluginPath" style="font-size: 16px;font-weight: bold">$viewers[3].pluginName</a>
+          </li>
 
           #foreach ($trigger in $triggerPlugins)
             #if (!$trigger.hidden)

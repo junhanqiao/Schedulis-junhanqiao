@@ -1,5 +1,6 @@
 package azkaban.dep;
 
+import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.*;
 import azkaban.flow.Flow;
 import azkaban.flow.FlowUtils;
@@ -158,5 +159,9 @@ public class DepService {
         parameters.put("wgby_year", wgby_year);
         parameters.put("wgby_timeid", wgby_timeid);
         return parameters;
+    }
+
+    public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
+        return depDao.searchFlowRelation(depedProjectId, depedFlowId, projectId, flowId, userName, pageNum, pageSize);
     }
 }
