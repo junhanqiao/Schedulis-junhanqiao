@@ -22,7 +22,7 @@
               :not-found-content="null"
               @search="handleDepedProjectSearch"
               @change="handleDepedProjectChange"
-              v-decorator="['depended_project_id']"
+              v-decorator="['dependedProjectId']"
             >
               <a-select-option v-for="d in depedProjects" :key="d.value">{{ d.text }}</a-select-option>
             </a-select>
@@ -40,13 +40,51 @@
               :not-found-content="null"
               @search="handleDepedProjectSearch"
               @change="handleDepedProjectChange"
-              v-decorator="['depended_flow_id']"
+              v-decorator="['dependedFlowId']"
             >
               <a-select-option v-for="d in depedProjects" :key="d.value">{{ d.text }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
       </a-row>
+
+      <a-row>
+        <a-col :key="'project_id'" :span="4">
+          <a-form-item :label="`项目`">
+            <a-select
+              show-search
+              allowClear
+              placeholder="input search text"
+              :default-active-first-option="false"
+              :show-arrow="false"
+              :filter-option="false"
+              :not-found-content="null"
+              @search="handleProjectSearch"
+              @change="handleProjectChange"
+              v-decorator="['projectId']"
+            >
+              <a-select-option v-for="d in projects" :key="d.value">{{ d.text }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :key="'flow_id'" :span="4">
+          <a-form-item :label="`工作流`">
+            <a-select
+              show-search
+              allowClear
+              placeholder="input search text"
+              :default-active-first-option="false"
+              :show-arrow="false"
+              :filter-option="false"
+              :not-found-content="null"
+              @search="handleFlowSearch"
+              v-decorator="['flowId']"
+            >
+              <a-select-option v-for="d in flows" :key="d.value">{{ d.text }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>      
     </a-form>
   </a-modal>
 </template>
@@ -79,6 +117,24 @@ export default {
       console.log(value);
       console.log(option);
       //update depedFlows
+      services.getFlowsByProject(value,res=>{this.depedFlows=res.data})
+    },
+
+    handleDepedFlowSearch(value,option) {
+      console.log(value);
+    },
+    handleProjectSearch(value) {
+      services.searchProjectByName(value, res => {
+        this.depedProjects = res.data;
+      });
+    },
+    handleProjectChange(value, option) {
+      console.log(value);
+      console.log(option);
+      //update depedFlows
+    },
+    handleFlowSearch(value) {
+      console.log(value);
     },
     handleOk(e) {
       e.preventDefault();

@@ -1,16 +1,52 @@
 import './mock/mock.js'
 import axios from 'axios'
 import './config/axios'
-
-function searchProjectByName(searchText,sucCallBack,failCallBack){
-    axios.get('/project/searchProject').then(sucCallBack).catch(failCallBack)
+function searchProjectByName(searchText, sucCallBack, failCallBack) {
+    let _searchText = searchText ? searchText.trim() : '.*'
+    let config={
+        params: {
+            searchText: _searchText,
+            ajax: 'searchProjectByName' 
+        }        
+    }
+    axios.get('/dep', config).then(sucCallBack).catch(failCallBack)
 }
 
-function searchDepRelations(params,sucCallBack,failCallBack){
-    axios.get('/dep/relations').then(sucCallBack).catch(failCallBack)
+function searchUserProjectByName(searchText, sucCallBack, failCallBack) {
+    let _searchText = searchText ? searchText.trim() : '.*'
+    let config={
+        params: {
+            searchText: _searchText ,
+            ajax: 'searchUserProjectByName'
+
+        }        
+    }
+    axios.get('/dep', config).then(sucCallBack).catch(failCallBack)
+}
+
+function getFlowsByProject(projectId, sucCallBack, failCallBack) {
+    let config={
+        params: {
+            projectId,
+            ajax:'getFlowsByProject'
+        }        
+    }
+    axios.get('/dep',config).then(sucCallBack).catch(failCallBack)
+}
+
+function searchDepRelations(params, sucCallBack, failCallBack) {
+    let config={
+        params: {
+            ...params,
+            ajax:'searchFlowRelation'
+        }        
+    }    
+    axios.get('/dep',config).then(sucCallBack).catch(failCallBack)
 }
 
 export default {
     searchProjectByName,
+    searchUserProjectByName,
     searchDepRelations,
+    getFlowsByProject,
 }

@@ -14,9 +14,9 @@
               :not-found-content="null"
               @search="handleDepedProjectSearch"
               @change="handleDepedProjectChange"
-              v-decorator="['depended_project_id']"
+              v-decorator="['dependedProjectId']"
             >
-              <a-select-option v-for="d in depedProjects" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="d in depedProjects" :key="d.id">{{ d.name }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -28,12 +28,11 @@
               placeholder="input search text"
               :default-active-first-option="false"
               :show-arrow="false"
-              :filter-option="false"
+              :filter-option="handleDepedFlowSearch"
               :not-found-content="null"
-              @search="handleDepedFlowSearch"
-              v-decorator="['depended_flow_id']"
+              v-decorator="['dependedFlowId']"
             >
-              <a-select-option v-for="d in depedFlows" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="flowId in depedFlows" :key="flowId">{{ flowId }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -49,11 +48,11 @@
               :show-arrow="false"
               :filter-option="false"
               :not-found-content="null"
-              @search="handleDepedProjectSearch"
-              @change="handleDepedProjectChange"
-              v-decorator="['project_id']"
+              @search="handleProjectSearch"
+              @change="handleProjectChange"
+              v-decorator="['projectId']"
             >
-              <a-select-option v-for="d in projects" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="d in projects" :key="d.id">{{ d.name }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -65,12 +64,11 @@
               placeholder="input search text"
               :default-active-first-option="false"
               :show-arrow="false"
-              :filter-option="false"
+              :filter-option="handleFlowSearch"
               :not-found-content="null"
-              @search="handleFlowSearch"
-              v-decorator="['flow_id']"
+              v-decorator="['flowId']"
             >
-              <a-select-option v-for="d in flows" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="flowId in flows" :key="flowId">{{ flowId }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -121,29 +119,31 @@ export default {
   methods: {
     handleDepedProjectSearch(value) {
       services.searchProjectByName(value, res => {
-        this.depedProjects = res.data;
+        this.depedProjects = res.data.data;
       });
     },
     handleDepedProjectChange(value, option) {
-      console.log(value);
-      console.log(option);
       //update depedFlows
+      services.getFlowsByProject(value,res=>{
+          this.depedFlows=res.data.data
+        }
+      )
     },
-    handleDepedFlowSearch(value) {
-      console.log(value);
+
+    handleDepedFlowSearch(value,option) {
+      return option.componentOptions.children[0].text.indexOf(value)>=0
     },
     handleProjectSearch(value) {
-      services.searchProjectByName(value, res => {
-        this.depedProjects = res.data;
+      services.searchUserProjectByName(value, res => {
+        this.projects = res.data.data;
       });
     },
     handleProjectChange(value, option) {
-      console.log(value);
-      console.log(option);
       //update depedFlows
+      services.getFlowsByProject(value,res=>{this.flows=res.data.data})
     },
-    handleFlowSearch(value) {
-      console.log(value);
+    handleFlowSearch(value, option) {
+      return option.componentOptions.children[0].text.indexOf(value)>=0
     },
     handleSearch(e) {
       e.preventDefault();
@@ -151,7 +151,10 @@ export default {
         console.log('error', error);
         console.log('Received values of form: ', values);
       });
-      let params={}
+      let params=this.form.getFieldsValue()
+      let pageSize=this.pageSize
+      let pageNum=this.pageNum
+      params={...params,pageSize,pageNum}
 
        services.searchDepRelations(
          params,

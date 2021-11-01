@@ -2,6 +2,7 @@ package azkaban.dep;
 
 import azkaban.db.DatabaseOperator;
 import azkaban.db.SQLTransaction;
+import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
 import org.apache.commons.dbutils.ResultSetHandler;
@@ -45,6 +46,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
     static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
+    static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO schedulis.dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?)";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -123,6 +125,26 @@ public class JdbcDepDaoImpl implements DepDao {
         return effectRows;
     }
 
+
+    public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException {
+
+        final SQLTransaction<Long> insertAndGetLastID = transOperator -> {
+            transOperator.update(INTERT_DEP_FLOW_RELATION,
+                    depFlowRelation.getDependedProjectId(),
+                    depFlowRelation.getDependedFlowId(),
+                    depFlowRelation.getProjectId(),
+                    depFlowRelation.getFlowId(),
+                    Timestamp.from(depFlowRelation.getCreateTime()),
+                    Timestamp.from(depFlowRelation.getModifyTime()));
+
+            transOperator.getConnection().commit();
+            return transOperator.getLastInsertId();
+        };
+
+        final long id = this.dbOperator.transaction(insertAndGetLastID);
+        depFlowRelation.setId((int) id);
+    }
+
     @Override
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         String sql = "select r.*,depedProject.name as depended_project_name,p.name  as project_name,p.create_user \n" +
@@ -169,7 +191,7 @@ public class JdbcDepDaoImpl implements DepDao {
 
         logger.debug("sql:{}", sql);
         logger.debug("params:{}", params);
-        List<DepFlowRelationDetail> result = this.dbOperator.query(sql, new FetchDepFlowRelationDetailDetailHandler(), params);
+        List<DepFlowRelationDetail> result = this.dbOperator.query(sql, new FetchDepFlowRelationDetailDetailHandler(), params.toArray());
 
         return result;
     }
@@ -193,8 +215,10 @@ public class JdbcDepDaoImpl implements DepDao {
                 final LocalDateTime timeId = rs.getTimestamp("time_id").toLocalDateTime();
                 final DepFlowInstanceStatus status = DepFlowInstanceStatus.fromInt(rs.getInt("status"));
                 final int execId = rs.getInt("exec_id");
-                final Instant createTime = rs.getTimestamp("create_time").toInstant();
-                final Instant modifyTime = rs.getTimestamp("modify_time").toInstant();
+                Timestamp createTimeTs = rs.getTimestamp("create_time");
+                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
+                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
+                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
                 DepFlowInstance instance = new DepFlowInstance(id, projectId, flowId, timeId, status, execId, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
@@ -223,8 +247,10 @@ public class JdbcDepDaoImpl implements DepDao {
                 final int depedProjectId = rs.getInt("depended_project_id");
                 final String depedProjectName = rs.getString("depended_project_name");
                 final String depedFlowId = rs.getString("depended_flow_id");
-                final Instant createTime = rs.getTimestamp("create_time").toInstant();
-                final Instant modifyTime = rs.getTimestamp("modify_time").toInstant();
+                Timestamp createTimeTs = rs.getTimestamp("create_time");
+                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
+                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
+                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
                 DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());

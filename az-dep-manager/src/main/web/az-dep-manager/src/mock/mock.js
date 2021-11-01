@@ -55,8 +55,21 @@ var relations=[{
 }
 ];
 Mock.mock('/dep/relations','get',relations);
+
 var projects=[
-    {"value":1,"text":"project1"},
-    {"value":2,"text":"project2"},
+    {"id":1,"name":"project1"},
+    {"id":2,"name":"project2"},
 ]
-Mock.mock('/project/searchProject','get',projects)
+//Mock.mock(/\/dep?.*searchProjectByName.*/,'get',projects)
+
+var userProjects=[
+    {"id":1,"name":"project1"},
+    {"id":2,"name":"project2"},
+]
+//Mock.mock(/\/dep?.*searchUserProjectByName.*/,'get',userProjects)
+
+var flows=[
+   "flow1",
+   "flow2"
+]
+//Mock.mock(/\/dep?.*getFlowsByProject.*/,'get',flows)

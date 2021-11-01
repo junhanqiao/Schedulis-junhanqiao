@@ -31,4 +31,6 @@ public interface DepDao {
 
     //for ui
     List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId,String username,int pageNum,int pageSize) throws SQLException;
+
+    void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException;
 }

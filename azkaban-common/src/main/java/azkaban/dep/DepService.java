@@ -1,11 +1,14 @@
 package azkaban.dep;
 
+import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.bo.ProjectBrief;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.*;
 import azkaban.flow.Flow;
 import azkaban.flow.FlowUtils;
 import azkaban.project.Project;
 import azkaban.project.ProjectManager;
+import azkaban.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,10 +18,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Singleton
 public class DepService {
@@ -163,5 +163,50 @@ public class DepService {
 
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         return depDao.searchFlowRelation(depedProjectId, depedFlowId, projectId, flowId, userName, pageNum, pageSize);
+    }
+
+    public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException {
+        Instant nowInstant = Instant.now();
+        depFlowRelation.setCreateTime(nowInstant);
+        depFlowRelation.setModifyTime(nowInstant);
+
+        this.depDao.newDepFlowRelation(depFlowRelation);
+
+    }
+
+
+    public List<ProjectBrief> searchProjectByName(String searchText) {
+        List<ProjectBrief> result = new ArrayList<>();
+        List<Project> projects = this.projectManager.getProjectsByRegex(searchText);
+
+        for (Project project : projects) {
+            result.add(new ProjectBrief(project.getId(), project.getName()));
+        }
+
+        return result;
+
+    }
+
+    public List<ProjectBrief> searchUserProjectByName(String searchText, User user) {
+        List<ProjectBrief> result = new ArrayList<>();
+        List<Project> projects = this.projectManager.getUserPersonProjectsByRegex(user, searchText, null);
+
+        for (Project project : projects) {
+            result.add(new ProjectBrief(project.getId(), project.getName()));
+        }
+
+        return result;
+
+    }
+
+    public List<String> getFlowsByProject(int projectId) throws Exception {
+        Project project = this.projectManager.getProject(projectId);
+        if (project == null) {
+            throw new IllegalArgumentException("Project not found,id:" + projectId);
+        }
+
+        Set<String> flows = project.getFlowMap().keySet();
+        return new ArrayList<>(flows);
+
     }
 }
