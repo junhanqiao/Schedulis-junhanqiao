@@ -169,11 +169,14 @@ public class DepService {
         Instant nowInstant = Instant.now();
         depFlowRelation.setCreateTime(nowInstant);
         depFlowRelation.setModifyTime(nowInstant);
-
         this.depDao.newDepFlowRelation(depFlowRelation);
 
     }
 
+    public DepFlowRelation getDepFlowRelationByLogicKey(DepFlowRelation condition) throws SQLException {
+        DepFlowRelation result = this.depDao.getDepFlowRelationByKey(condition);
+        return result;
+    }
 
     public List<ProjectBrief> searchProjectByName(String searchText) {
         List<ProjectBrief> result = new ArrayList<>();

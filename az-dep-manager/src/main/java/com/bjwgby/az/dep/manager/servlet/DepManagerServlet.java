@@ -142,53 +142,53 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
 
     private void getFlowsByProject(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
         try {
-            int projectId=getIntParam(req,"projectId");
+            int projectId = getIntParam(req, "projectId");
             List<String> result = this.depService.getFlowsByProject(projectId);
-            ret.put(CODE,0);
-            ret.put(DATA,result);
+            ret.put(CODE, 0);
+            ret.put(DATA, result);
         } catch (ServletException e) {
-            logger.error("error while getIntParam:projectId ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while getIntParam:projectId ");
+            logger.error("error while getIntParam:projectId ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while getIntParam:projectId ");
         } catch (Exception e) {
-            logger.error("error while getFlowsByProject ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while getFlowsByProject");
+            logger.error("error while getFlowsByProject ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while getFlowsByProject");
         }
 
     }
 
     private void searchUserProjectByName(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
         try {
-            String searchText=getParam(req,"searchText");
-            List<ProjectBrief> result = this.depService.searchUserProjectByName(searchText,session.getUser());
-            ret.put(CODE,0);
-            ret.put(DATA,result);
+            String searchText = getParam(req, "searchText");
+            List<ProjectBrief> result = this.depService.searchUserProjectByName(searchText, session.getUser());
+            ret.put(CODE, 0);
+            ret.put(DATA, result);
         } catch (ServletException e) {
-            logger.error("error while getParam:searchText ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while getParam:searchText ");
+            logger.error("error while getParam:searchText ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while getParam:searchText ");
         } catch (Exception e) {
-            logger.error("error while searchUserProjectByName ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while searchUserProjectByName");
+            logger.error("error while searchUserProjectByName ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while searchUserProjectByName");
         }
     }
 
     private void searchProjectByName(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
         try {
-            String searchText=getParam(req,"searchText");
+            String searchText = getParam(req, "searchText");
             List<ProjectBrief> result = this.depService.searchProjectByName(searchText);
-            ret.put(CODE,0);
-            ret.put(DATA,result);
+            ret.put(CODE, 0);
+            ret.put(DATA, result);
         } catch (ServletException e) {
-            logger.error("error while getParam:searchText ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while getParam:searchText ");
+            logger.error("error while getParam:searchText ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while getParam:searchText ");
         } catch (Exception e) {
-            logger.error("error while searchUserProjectByName ",e);
-            ret.put(CODE,1);
-            ret.put(MSG,"error while searchUserProjectByName");
+            logger.error("error while searchUserProjectByName ", e);
+            ret.put(CODE, 1);
+            ret.put(MSG, "error while searchUserProjectByName");
         }
     }
 
@@ -197,7 +197,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         JsonObject jsonObject = HttpRequestUtils.parseRequestToJsonObject(req);
         DepFlowRelation depFlowRelation = GsonUtils.jsonToJavaObject(jsonObject, DepFlowRelation.class);
 
-        Project depedProject = projectManager.getProject(depFlowRelation.getDependedFlowId());
+        Project depedProject = projectManager.getProject(depFlowRelation.getDependedProjectId());
         if (depedProject == null) {
             ret.put(CODE, 1);
             ret.put(MSG, "deped project does not exist");
@@ -231,6 +231,20 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         }
 
         try {
+            DepFlowRelation existedRelation = this.depService.getDepFlowRelationByLogicKey(depFlowRelation);
+            if (existedRelation != null) {
+                logger.warn("flowRelation exist already:{}", existedRelation);
+                ret.put(CODE, 1);
+                ret.put(MSG, "flowRelation exist already");
+                return;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            ret.put(CODE, 1);
+            ret.put(MSG, "something error,pls check");
+            return;
+        }
+        try {
             this.depService.newDepFlowRelation(depFlowRelation);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -257,8 +271,8 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             ret.put("data", result);
         } catch (SQLException e) {
             e.printStackTrace();
-            ret.put(CODE,1);
-            ret.put(MSG,"searchFlowRelation error,pls contat administrator!");
+            ret.put(CODE, 1);
+            ret.put(MSG, "searchFlowRelation error,pls contat administrator!");
         }
 
     }

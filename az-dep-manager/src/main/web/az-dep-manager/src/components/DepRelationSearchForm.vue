@@ -1,6 +1,6 @@
 <template>
- <div id="dep-relation-search-form">
-    <a-form class="dep-relation-add-form" :form="form"  @submit="handleSearch">
+  <div id="dep-relation-search-form">
+    <a-form class="dep-relation-add-form" :form="form" @submit="handleSearch">
       <a-row>
         <a-col :key="'depended_project_id'" :span="4">
           <a-form-item :label="`前置项目`">
@@ -75,14 +75,10 @@
       </a-row>
       <a-row>
         <a-col :span="24" :style="{ textAlign: 'right' }">
-          <a-button type="primary" html-type="submit">
-            查询
-          </a-button>
-          <a-button :style="{ marginLeft: '8px' }" @click="handleReset">
-            重置
-          </a-button>      
+          <a-button type="primary" html-type="submit">查询</a-button>
+          <a-button :style="{ marginLeft: '8px' }" @click="handleReset">重置</a-button>
         </a-col>
-      </a-row>      
+      </a-row>
     </a-form>
     <slot></slot>
     <a-pagination
@@ -93,15 +89,15 @@
       :total="total"
       @change="handlePageChange"
       @showSizeChange="handleShowSizeChange"
-    />    
- </div>
+    />
+  </div>
 </template>
 <script>
 import services from "../services";
 export default {
   name: "DepRelationSearchForm",
-  props:{
-      searchCallBack:Function,
+  props: {
+    searchCallBack: Function
   },
   data() {
     return {
@@ -110,72 +106,126 @@ export default {
       depedFlows: [],
       projects: [],
       flows: [],
-      pageSize:20,
-      pageNum:1,
-      total:100,
+      pageSize: 20,
+      pageNum: 1,
+      total: 100
     };
   },
   computed: {},
   methods: {
     handleDepedProjectSearch(value) {
-      services.searchProjectByName(value, res => {
-        this.depedProjects = res.data.data;
-      });
+      services.searchProjectByName(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.depedProjects = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
     },
     handleDepedProjectChange(value, option) {
       //update depedFlows
-      services.getFlowsByProject(value,res=>{
-          this.depedFlows=res.data.data
+      services.getFlowsByProject(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.depedFlows = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
         }
-      )
+      );
     },
 
-    handleDepedFlowSearch(value,option) {
-      return option.componentOptions.children[0].text.indexOf(value)>=0
+    handleDepedFlowSearch(value, option) {
+      return option.componentOptions.children[0].text.indexOf(value) >= 0;
     },
     handleProjectSearch(value) {
-      services.searchUserProjectByName(value, res => {
-        this.projects = res.data.data;
-      });
+      services.searchUserProjectByName(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.projects = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
     },
     handleProjectChange(value, option) {
-      //update depedFlows
-      services.getFlowsByProject(value,res=>{this.flows=res.data.data})
+      //update flows
+      services.getFlowsByProject(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.flows = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
     },
     handleFlowSearch(value, option) {
-      return option.componentOptions.children[0].text.indexOf(value)>=0
+      return option.componentOptions.children[0].text.indexOf(value) >= 0;
     },
     handleSearch(e) {
       e.preventDefault();
-      this.form.validateFields((error, values) => {
-        console.log('error', error);
-        console.log('Received values of form: ', values);
-      });
-      let params=this.form.getFieldsValue()
-      let pageSize=this.pageSize
-      let pageNum=this.pageNum
-      params={...params,pageSize,pageNum}
-
-       services.searchDepRelations(
-         params,
-         res=>{
-           this.searchCallBack(res.data)
-        }
-        )
+      this.doSearch();
     },
 
     handleReset() {
       this.form.resetFields();
     },
-    handlePageChange(page,pageSize){
-      console.log({page,pageSize})
-      this.pageNum=page
+    handlePageChange(page, pageSize) {
+      console.log({ page, pageSize });
+      this.pageNum = page;
+      this.doSearch();
     },
-    handleShowSizeChange(page,pageSize){
-      console.log({page,pageSize})
-      this.pageSize=pageSize
-    }
+    handleShowSizeChange(page, pageSize) {
+      console.log({ page, pageSize });
+      this.pageSize = pageSize;
+      this.doSearch();
+    },
+    doSearch() {
+      this.form.validateFields((error, values) => {
+        if (error) {
+          console.log("error", error);
+          return;
+        }
+      });
+      let params = this.form.getFieldsValue();
+      let pageSize = this.pageSize;
+      let pageNum = this.pageNum;
+      params = { ...params, pageSize, pageNum };
 
+      services.searchDepRelations(
+        params,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.searchCallBack(res.data);
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
+    }
   }
 };
 </script>

@@ -5,6 +5,7 @@ import azkaban.db.SQLTransaction;
 import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbutils.ResultSetHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -47,6 +48,9 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
     static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
     static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO schedulis.dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?)";
+
+    static final String QUERY_DEP_FLOW_RELATION_BY_LOGIC_KEY = "SELECT * FROM dep_flow_relation WHERE depended_project_id=? AND  depended_flow_id = ? AND   project_id = ? AND  flow_id = ?";
+    static final String QUERY_DEP_FLOW_RELATION_BY_KEY = "SELECT * FROM dep_flow_relation WHERE id=?";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -145,6 +149,18 @@ public class JdbcDepDaoImpl implements DepDao {
         depFlowRelation.setId((int) id);
     }
 
+    public DepFlowRelation getDepFlowRelationByKey(DepFlowRelation depFlowRelation) throws SQLException {
+        List<DepFlowRelation> result = this.dbOperator.query(QUERY_DEP_FLOW_RELATION_BY_LOGIC_KEY, new FetchDepFlowRelationHandler(), depFlowRelation.getDependedProjectId(), depFlowRelation.getDependedFlowId(), depFlowRelation.getProjectId(), depFlowRelation.getFlowId());
+        DepFlowRelation relation = CollectionUtils.isEmpty(result) ? null : result.get(0);
+        return relation;
+    }
+
+    public DepFlowRelation getDepFlowRelationByKey(int id) throws SQLException {
+        List<DepFlowRelation> result = this.dbOperator.query(QUERY_DEP_FLOW_RELATION_BY_KEY, new FetchDepFlowRelationHandler(),id);
+        DepFlowRelation relation = CollectionUtils.isEmpty(result) ? null : result.get(0);
+        return relation;
+    }
+
     @Override
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         String sql = "select r.*,depedProject.name as depended_project_name,p.name  as project_name,p.create_user \n" +
@@ -191,7 +207,7 @@ public class JdbcDepDaoImpl implements DepDao {
 
         logger.debug("sql:{}", sql);
         logger.debug("params:{}", params);
-        List<DepFlowRelationDetail> result = this.dbOperator.query(sql, new FetchDepFlowRelationDetailDetailHandler(), params.toArray());
+        List<DepFlowRelationDetail> result = this.dbOperator.query(sql, new FetchDepFlowRelationDetailHandler(), params.toArray());
 
         return result;
     }
@@ -228,7 +244,7 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
 
-    public static class FetchDepFlowRelationDetailDetailHandler implements
+    public static class FetchDepFlowRelationDetailHandler implements
             ResultSetHandler<List<
                     DepFlowRelationDetail>> {
 
@@ -252,6 +268,35 @@ public class JdbcDepDaoImpl implements DepDao {
                 Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
                 final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
                 DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createTime, modifyTime);
+                instances.add(instance);
+            } while (rs.next());
+
+            return instances;
+        }
+    }
+
+    public static class FetchDepFlowRelationHandler implements
+            ResultSetHandler<List<
+                    DepFlowRelation>> {
+
+        @Override
+        public List<DepFlowRelation> handle(ResultSet rs) throws SQLException {
+            if (!rs.next()) {
+                return Collections.emptyList();
+            }
+
+            final List<DepFlowRelation> instances = new ArrayList<>();
+            do {
+                final int id = rs.getInt("id");
+                final int projectId = rs.getInt("project_id");
+                final String flowId = rs.getString("flow_id");
+                final int depedProjectId = rs.getInt("depended_project_id");
+                final String depedFlowId = rs.getString("depended_flow_id");
+                Timestamp createTimeTs = rs.getTimestamp("create_time");
+                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
+                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
+                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
+                DepFlowRelation instance = new DepFlowRelation(id, depedProjectId, depedFlowId, projectId, flowId, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
 

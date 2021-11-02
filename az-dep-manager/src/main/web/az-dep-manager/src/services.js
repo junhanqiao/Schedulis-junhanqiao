@@ -44,9 +44,18 @@ function searchDepRelations(params, sucCallBack, failCallBack) {
     axios.get('/dep',config).then(sucCallBack).catch(failCallBack)
 }
 
+function addFlowRelation(data, sucCallBack, failCallBack) {
+    let config={
+        params:{
+            ajax:'addFlowRelation'
+        }
+    }    
+    axios.post('/dep',data,config).then(sucCallBack).catch(failCallBack)
+}
 export default {
     searchProjectByName,
     searchUserProjectByName,
     searchDepRelations,
     getFlowsByProject,
+    addFlowRelation,
 }

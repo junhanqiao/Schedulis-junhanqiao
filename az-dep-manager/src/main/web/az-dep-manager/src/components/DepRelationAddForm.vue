@@ -24,7 +24,7 @@
               @change="handleDepedProjectChange"
               v-decorator="['dependedProjectId']"
             >
-              <a-select-option v-for="d in depedProjects" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="d in depedProjects" :key="d.id">{{ d.name }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -36,20 +36,17 @@
               placeholder="input search text"
               :default-active-first-option="false"
               :show-arrow="false"
-              :filter-option="false"
+              :filter-option="handleDepedFlowSearch"
               :not-found-content="null"
-              @search="handleDepedProjectSearch"
-              @change="handleDepedProjectChange"
               v-decorator="['dependedFlowId']"
             >
-              <a-select-option v-for="d in depedProjects" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="flowId in depedFlows" :key="flowId">{{ flowId }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
       </a-row>
-
       <a-row>
-        <a-col :key="'project_id'" :span="4">
+        <a-col :key="'project_id'">
           <a-form-item :label="`项目`">
             <a-select
               show-search
@@ -63,11 +60,11 @@
               @change="handleProjectChange"
               v-decorator="['projectId']"
             >
-              <a-select-option v-for="d in projects" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="d in projects" :key="d.id">{{ d.name }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
-        <a-col :key="'flow_id'" :span="4">
+        <a-col :key="'flow_id'">
           <a-form-item :label="`工作流`">
             <a-select
               show-search
@@ -75,16 +72,15 @@
               placeholder="input search text"
               :default-active-first-option="false"
               :show-arrow="false"
-              :filter-option="false"
+              :filter-option="handleFlowSearch"
               :not-found-content="null"
-              @search="handleFlowSearch"
               v-decorator="['flowId']"
             >
-              <a-select-option v-for="d in flows" :key="d.value">{{ d.text }}</a-select-option>
+              <a-select-option v-for="flowId in flows" :key="flowId">{{ flowId }}</a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
-      </a-row>      
+      </a-row>
     </a-form>
   </a-modal>
 </template>
@@ -92,10 +88,10 @@
 import services from "../services";
 export default {
   name: "DepRelationAddForm",
-  props:{
-      visible:Boolean,
-      okCallBack:Function,
-      cancelCallBack:Function,
+  props: {
+    visible: Boolean,
+    okCallBack: Function,
+    cancelCallBack: Function
   },
   data() {
     return {
@@ -103,38 +99,75 @@ export default {
       depedProjects: [],
       depedFlows: [],
       projects: [],
-      flows: [],
+      flows: []
     };
   },
   computed: {},
   methods: {
     handleDepedProjectSearch(value) {
-      services.searchProjectByName(value, res => {
-        this.depedProjects = res.data;
-      });
+      services.searchProjectByName(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.depedProjects = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
     },
     handleDepedProjectChange(value, option) {
-      console.log(value);
-      console.log(option);
       //update depedFlows
-      services.getFlowsByProject(value,res=>{this.depedFlows=res.data})
+      services.getFlowsByProject(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.depedFlows = res.data.data;
+        },
+        res => {
+          this.$message.error("Error");
+        }
+      );
     },
 
-    handleDepedFlowSearch(value,option) {
-      console.log(value);
+    handleDepedFlowSearch(value, option) {
+      return option.componentOptions.children[0].text.indexOf(value) >= 0;
     },
     handleProjectSearch(value) {
-      services.searchProjectByName(value, res => {
-        this.depedProjects = res.data;
-      });
+      services.searchUserProjectByName(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.projects = res.data.data;
+        },
+        res=>{this.$message.error("Error")}
+      );
     },
     handleProjectChange(value, option) {
-      console.log(value);
-      console.log(option);
-      //update depedFlows
+      //update flows
+      services.getFlowsByProject(
+        value,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.flows = res.data.data;
+        },
+        res=>{this.$message.error("Error")}
+      );
     },
-    handleFlowSearch(value) {
-      console.log(value);
+    handleFlowSearch(value, option) {
+      return option.componentOptions.children[0].text.indexOf(value) >= 0;
     },
     handleOk(e) {
       e.preventDefault();
@@ -142,17 +175,26 @@ export default {
         console.log("error", error);
         console.log("Received values of form: ", values);
       });
-      services.searchDepRelations("", res => {
-        this.tableData = res.data;
-      });
-      if(this.okCallBack){
-          this.okCallBack()
+      let params = this.form.getFieldsValue();
+      services.addFlowRelation(
+        params,
+        res => {
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }
+          this.tableData = res.data;
+        },
+        res=>{this.$message.error("Error")}
+      );
+      if (this.okCallBack) {
+        this.okCallBack();
       }
     },
-    handleCancel(){
-      if(this.cancelCallBack){
-          this.cancelCallBack()
-      }        
+    handleCancel() {
+      if (this.cancelCallBack) {
+        this.cancelCallBack();
+      }
     }
   }
 };
