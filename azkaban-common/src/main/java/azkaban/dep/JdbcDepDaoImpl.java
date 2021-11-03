@@ -47,10 +47,12 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
     static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
-    static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO schedulis.dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?)";
+    static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO schedulis.dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_user,create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?,?)";
 
     static final String QUERY_DEP_FLOW_RELATION_BY_LOGIC_KEY = "SELECT * FROM dep_flow_relation WHERE depended_project_id=? AND  depended_flow_id = ? AND   project_id = ? AND  flow_id = ?";
     static final String QUERY_DEP_FLOW_RELATION_BY_KEY = "SELECT * FROM dep_flow_relation WHERE id=?";
+    static final String DELETE_DEP_FLOW_RELATION_BY_KEY = "DELETE FROM dep_flow_relation WHERE id=?";
+    static final String SEARCH_DEP_FLOW_RELATION_FROM_SQL = "from dep_flow_relation r join projects depedProject on (r.depended_project_id =depedProject .id ) JOIN projects p on (r.project_id =p.id ) ";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -138,6 +140,7 @@ public class JdbcDepDaoImpl implements DepDao {
                     depFlowRelation.getDependedFlowId(),
                     depFlowRelation.getProjectId(),
                     depFlowRelation.getFlowId(),
+                    depFlowRelation.getCreateUser(),
                     Timestamp.from(depFlowRelation.getCreateTime()),
                     Timestamp.from(depFlowRelation.getModifyTime()));
 
@@ -156,51 +159,44 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public DepFlowRelation getDepFlowRelationByKey(int id) throws SQLException {
-        List<DepFlowRelation> result = this.dbOperator.query(QUERY_DEP_FLOW_RELATION_BY_KEY, new FetchDepFlowRelationHandler(),id);
+        List<DepFlowRelation> result = this.dbOperator.query(QUERY_DEP_FLOW_RELATION_BY_KEY, new FetchDepFlowRelationHandler(), id);
         DepFlowRelation relation = CollectionUtils.isEmpty(result) ? null : result.get(0);
         return relation;
     }
 
     @Override
-    public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
-        String sql = "select r.*,depedProject.name as depended_project_name,p.name  as project_name,p.create_user \n" +
-                "from dep_flow_relation r join projects depedProject on (r.depended_project_id =depedProject .id ) JOIN projects p on (r.project_id =p.id ) ";
-        String filterStr = "";
-        List<Object> params = new ArrayList<>();
+    public int deleteFlowRelationById(int id) throws SQLException {
+        int effectRows = this.dbOperator.update(DELETE_DEP_FLOW_RELATION_BY_KEY, id);
+        return effectRows;
 
-        boolean isFirst = true;
-        if (depedProjectId != null) {
-            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_project_id=? ");
-            params.add(depedProjectId);
-            isFirst = false;
-        }
-        if (depedFlowId != null) {
-            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_flow_id like ? ");
-            params.add(StringUtils.join('%', depedFlowId, '%'));
-            isFirst = false;
-        }
-        if (projectId != null) {
-            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.project_id=? ");
-            params.add(projectId);
-            isFirst = false;
-        }
-        if (flowId != null) {
-            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.flow_id like ? ");
-            params.add(StringUtils.join('%', flowId, '%'));
-            isFirst = false;
-        }
-        if (userName != null) {
-            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " p.create_user=? ");
-            params.add(userName);
-            isFirst = false;
-        }
+    }
 
-        filterStr = filterStr.trim().toLowerCase();
-        if (StringUtils.isNotBlank(filterStr)) {
-            sql = StringUtils.join(sql, " where ", filterStr);
-        }
+    @Override
+    public int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException {
+        String select = "select count(*) ";
+        Object[] whereAndParams = buildWhereAndParams(SEARCH_DEP_FLOW_RELATION_FROM_SQL, depedProjectId, depedFlowId, projectId, flowId, userName);
+        String fromAndWhere = (String) whereAndParams[0];
+        List<Object> params = (List<Object>) whereAndParams[1];
         //pagination
-        sql = StringUtils.join(sql, " limit ?,?");
+        String sql = StringUtils.join(select, fromAndWhere);
+
+
+        logger.debug("sql:{}", sql);
+        logger.debug("params:{}", params);
+        Integer result = this.dbOperator.query(sql, new IntHandler(), params.toArray());
+
+        return result;
+    }
+
+    @Override
+    public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
+        String select = "select r.*,depedProject.name as depended_project_name,p.name  as project_name \n";
+        Object[] whereAndParams = buildWhereAndParams(SEARCH_DEP_FLOW_RELATION_FROM_SQL, depedProjectId, depedFlowId, projectId, flowId, userName);
+        String fromAndWhere = (String) whereAndParams[0];
+        List<Object> params = (List<Object>) whereAndParams[1];
+        //pagination
+        String sql = StringUtils.join(select, fromAndWhere, " limit ?,?");
+
         int startRowNum = (pageNum - 1) * pageSize;
         params.add(startRowNum);
         params.add(pageSize);
@@ -263,11 +259,12 @@ public class JdbcDepDaoImpl implements DepDao {
                 final int depedProjectId = rs.getInt("depended_project_id");
                 final String depedProjectName = rs.getString("depended_project_name");
                 final String depedFlowId = rs.getString("depended_flow_id");
+                final String createUser = rs.getString("create_user");
                 Timestamp createTimeTs = rs.getTimestamp("create_time");
                 final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
                 Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
                 final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
-                DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createTime, modifyTime);
+                DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createUser,createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
 
@@ -292,15 +289,71 @@ public class JdbcDepDaoImpl implements DepDao {
                 final String flowId = rs.getString("flow_id");
                 final int depedProjectId = rs.getInt("depended_project_id");
                 final String depedFlowId = rs.getString("depended_flow_id");
+                final String createUser = rs.getString("create_user");
                 Timestamp createTimeTs = rs.getTimestamp("create_time");
                 final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
                 Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
                 final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
-                DepFlowRelation instance = new DepFlowRelation(id, depedProjectId, depedFlowId, projectId, flowId, createTime, modifyTime);
+                DepFlowRelation instance = new DepFlowRelation(id, depedProjectId, depedFlowId, projectId, flowId,createUser, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
 
             return instances;
         }
+    }
+
+    private static class IntHandler implements ResultSetHandler<Integer> {
+
+        @Override
+        public Integer handle(final ResultSet rs) throws SQLException {
+            if (!rs.next()) {
+                return 0;
+            }
+            return rs.getInt(1);
+        }
+    }
+
+    private Object[] buildWhereAndParams(String mainSql, Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) {
+        String sql = mainSql;
+        String filterStr = "";
+        List<Object> params = new ArrayList<>();
+
+        boolean isFirst = true;
+        if (depedProjectId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_project_id=? ");
+            params.add(depedProjectId);
+            isFirst = false;
+        }
+        if (depedFlowId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_flow_id like ? ");
+            params.add(StringUtils.join('%', depedFlowId, '%'));
+            isFirst = false;
+        }
+        if (projectId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.project_id=? ");
+            params.add(projectId);
+            isFirst = false;
+        }
+        if (flowId != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.flow_id like ? ");
+            params.add(StringUtils.join('%', flowId, '%'));
+            isFirst = false;
+        }
+        if (userName != null) {
+            filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.create_user = ? ");
+            params.add(userName);
+            isFirst = false;
+        }
+
+        filterStr = filterStr.trim().toLowerCase();
+        if (StringUtils.isNotBlank(filterStr)) {
+            sql = StringUtils.join(sql, " where ", filterStr);
+        }
+
+        Object[] result = new Object[2];
+        result[0] = sql;
+        result[1] = params;
+        return result;
+
     }
 }

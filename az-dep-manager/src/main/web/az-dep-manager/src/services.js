@@ -52,10 +52,20 @@ function addFlowRelation(data, sucCallBack, failCallBack) {
     }    
     axios.post('/dep',data,config).then(sucCallBack).catch(failCallBack)
 }
+function deleteFlowRelation(id, sucCallBack, failCallBack) {
+    let config={
+        params:{
+            ajax:'deleteFlowRelation',
+            id
+        }
+    }    
+    axios.post('/dep',{},config).then(sucCallBack).catch(failCallBack)
+}
 export default {
     searchProjectByName,
     searchUserProjectByName,
     searchDepRelations,
     getFlowsByProject,
     addFlowRelation,
+    deleteFlowRelation,
 }

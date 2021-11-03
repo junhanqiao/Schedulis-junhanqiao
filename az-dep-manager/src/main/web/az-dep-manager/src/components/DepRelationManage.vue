@@ -1,31 +1,29 @@
 <template>
   <div id="dep-relation-manage">
-    <a-button type="primary" @click="handleAdd">
-      新增依赖
-    </a-button>      
+    <a-divider />    
     <DepRelationSearchForm :searchCallBack='searchCallBack'>
         <a-table bordered :data-source="tableData" :columns="columns" :rowKey="`id`" :pagination='false'>
             <template slot="operation" slot-scope="text, record">
                 <a-popconfirm
                 v-if="tableData.length"
-                title="Sure to delete?"
+                title="确定删除?"
                 @confirm="() => onDelete(record.id)"
                 >
-                <a href="javascript:;">Delete</a>
+                <a href="javascript:;">删除</a>
                 </a-popconfirm>
             </template>
         </a-table>
     </DepRelationSearchForm>
-    <DepRelationAddForm :visible='addFormVisible' :okCallBack='addOk' :cancelCallBack='addCancel'/>
   </div>
   
 </template>
 <script>
-import DepRelationAddForm from './DepRelationAddForm'
 import DepRelationSearchForm from './DepRelationSearchForm'
+import moment from 'moment'
+import services from '../services';
 export default {
   name: 'DepRelationManage',  
-  components:{DepRelationAddForm,DepRelationSearchForm},
+  components:{DepRelationSearchForm},
   data() {
     return {
       tableData: [],
@@ -37,38 +35,51 @@ export default {
           scopedSlots: { customRender: 'id' },
         },
         {
-          title: 'depended_project_id',
-          dataIndex: 'depended_project_id',
+          title: '前置项目',
+          dataIndex: 'dependedProjectName',
         },
         {
-          title: 'depended_flow_id',
-          dataIndex: 'depended_flow_id',
+          title: '前置工作流',
+          dataIndex: 'dependedFlowId',
         },
         {
-          title: 'project_id',
-          dataIndex: 'project_id',
+          title: '项目',
+          dataIndex: 'projectName',
         },
         {
-          title: 'flow_id',
-          dataIndex: 'flow_id',
+          title: '工作流',
+          dataIndex: 'flowId',
         },
         {
-          title: 'create_time',
-          dataIndex: 'create_time',
+          title: '创建时间',
+          dataIndex: 'createTime',
+          customRender:(text, row, index)=>{
+            let result="";
+            if(row.createTime){
+              result=moment.unix(row.createTime.epochSecond).format()
+            }
+            return result;
+          },
         },
         {
-          title: 'modify_time',
+          title: '修改时间',
           dataIndex: 'modify_time',
+          customRender:(text, row, index)=>{
+            let result="";
+            if(row.modifyTime){
+              result=moment.unix(row.modifyTime.epochSecond).format()
+            }
+            return result;
+          },
         },
         {
-          title: 'operation',
+          title: '操作',
           dataIndex: 'operation',
           scopedSlots: { customRender: 'operation' },
         },
       ],      
 
-      //add form
-      addFormVisible:false,
+
     };
   },
   computed: {
@@ -76,23 +87,28 @@ export default {
   },
   methods: {
 
-    searchCallBack(tableData){
-        this.tableData=tableData
+    searchCallBack(res){
+        this.tableData=res.data
     },
 
     onDelete(key) {
-      const tableData = [...this.tableData];
-      this.tableData = tableData.filter(item => item.id !== key);
+      services.deleteFlowRelation(
+        key,
+        res=>{
+          if (res.data.code) {
+            this.$message.error(res.data.message);
+            return;
+          }          
+          const tableData = [...this.tableData];
+          this.tableData = tableData.filter(item => item.id !== key);
+        },
+        res=>{
+          this.$message.error("delete failed");
+        }
+      )
+
     },
-    handleAdd() {
-      this.addFormVisible=true
-    },
-    addOk(){
-        this.addFormVisible=false
-    },
-    addCancel(){
-        this.addFormVisible=false
-    }
+
   },
 };
 </script>

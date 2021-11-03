@@ -75,12 +75,13 @@
       </a-row>
       <a-row>
         <a-col :span="24" :style="{ textAlign: 'right' }">
-          <a-button type="primary" html-type="submit">查询</a-button>
-          <a-button :style="{ marginLeft: '8px' }" @click="handleReset">重置</a-button>
+          <a-button type="primary" icon="search" html-type="submit">查询</a-button>
+          <a-button  @click="handleReset">重置</a-button>
+          <a-button type="primary" @click="handleAdd">新增</a-button>
         </a-col>
       </a-row>
     </a-form>
-    <slot></slot>
+    <slot></slot>     
     <a-pagination
       show-size-changer
       :default-current="1"
@@ -90,12 +91,15 @@
       @change="handlePageChange"
       @showSizeChange="handleShowSizeChange"
     />
+    <DepRelationAddForm :visible='addFormVisible' :okCallBack='addOk' :cancelCallBack='addCancel'/>        
   </div>
 </template>
 <script>
 import services from "../services";
+import DepRelationAddForm from './DepRelationAddForm'
 export default {
   name: "DepRelationSearchForm",
+  components:{DepRelationAddForm},
   props: {
     searchCallBack: Function
   },
@@ -108,7 +112,9 @@ export default {
       flows: [],
       pageSize: 20,
       pageNum: 1,
-      total: 100
+      total: 100,
+      //add form
+      addFormVisible:false,
     };
   },
   computed: {},
@@ -219,12 +225,23 @@ export default {
             this.$message.error(res.data.message);
             return;
           }
+          this.total=res.data.total
           this.searchCallBack(res.data);
         },
         res => {
           this.$message.error("Error");
         }
       );
+    },
+    handleAdd() {
+      this.addFormVisible=true
+    },
+    addOk(){
+        this.addFormVisible=false
+        this.doSearch()
+    },
+    addCancel(){
+        this.addFormVisible=false
     }
   }
 };

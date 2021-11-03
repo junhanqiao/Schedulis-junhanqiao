@@ -701,6 +701,7 @@ INSERT INTO `wtss_user` (`user_id`, `username`, `password`, `full_name`, `depart
   `depended_flow_id` varchar(128) NOT NULL,
   `project_id` int(11) NOT NULL,
   `flow_id` varchar(128) NOT NULL,
+  `create_user` varchar(64) DEFAULT NULL COMMENT '创建人',
   create_time TIMESTAMP,
   modify_time TIMESTAMP,
   primary key(id)

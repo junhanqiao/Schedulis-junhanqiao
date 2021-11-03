@@ -1,19 +1,3 @@
-/*
- * Copyright 2020 WeBank
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.bjwgby.az.dep.manager.servlet;
 
 import azkaban.ServiceProvider;
@@ -46,6 +30,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DepManagerServlet extends LoginAbstractAzkabanServlet {
 
@@ -133,11 +118,52 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             searchUserProjectByName(req, resp, session, ret);
         } else if (ajaxName.equals("getFlowsByProject")) {
             getFlowsByProject(req, resp, session, ret);
+        } else if (ajaxName.equals("deleteFlowRelation")) {
+            deleteFlowRelation(req, resp, session, ret);
         }
 
         if (ret != null) {
             this.writeJSON(resp, ret);
         }
+    }
+
+    private void deleteFlowRelation(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) throws ServletException {
+
+        if (!HttpRequestUtils.hasParam(req, "id")) {
+            this.returnError(1, "pls specify id", ret);
+            return;
+        }
+        int id = HttpRequestUtils.getIntParam(req, "id");
+
+        try {
+            DepFlowRelation relation = this.depService.getDepFlowRelationByKey(id);
+
+            if (relation == null) {
+                this.returnError(1, "relation not found!", ret);
+                return;
+            }
+
+            Project project = this.projectManager.getProject(relation.getProjectId());
+
+            if (project == null) {
+                this.returnError(1, "project not found", ret);
+                return;
+            }
+
+            User user = session.getUser();
+            if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+                this.returnError(1, "no permission", ret);
+                return;
+            }
+
+
+            int effectRowNum = this.depService.deleteFlowRelationById(id);
+            logger.info("delete dep flow relation:{},effectRowNum:{}", relation, effectRowNum);
+        } catch (SQLException e) {
+            logger.error("delete flow relation failed,id:" + id, e);
+            returnError(1, "Delete flow relation failed", ret);
+        }
+
     }
 
     private void getFlowsByProject(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
@@ -245,6 +271,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             return;
         }
         try {
+            depFlowRelation.setCreateUser(user.getUserId());
             this.depService.newDepFlowRelation(depFlowRelation);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -257,17 +284,33 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
 
     private void searchFlowRelation(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) throws ServletException {
         User user = session.getUser();
-        Integer depedProjectId = getIntParam(req, "dependedProjectId");
-        String depedFlowId = getParam(req, "dependedFlowId");
-        Integer projectId = getIntParam(req, "projectId");
-        String flowId = getParam(req, "flowId");
+        Integer depedProjectId = HttpRequestUtils.hasParam(req, "dependedProjectId") ? getIntParam(req, "dependedProjectId") : null;
+        String depedFlowId = getParam(req, "dependedFlowId", null);
+        Integer projectId = HttpRequestUtils.hasParam(req, "projectId") ? getIntParam(req, "projectId") : null;
+        String flowId = getParam(req, "flowId", null);
         String userName = user.getUserId();
         int pageNum = getIntParam(req, "pageNum", 1);
         int pageSize = getIntParam(req, "pageSize", 20);
 
         try {
+            if (projectId != null) {
+                Project project = this.projectManager.getProject(projectId);
+
+
+                if (project == null) {
+                    this.returnError(1, "project not found", ret);
+                    return;
+                }
+
+                if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+                    this.returnError(1, "no permission", ret);
+                    return;
+                }
+            }
+
             List<DepFlowRelationDetail> result = this.depService.searchFlowRelation(depedProjectId, depedFlowId, projectId, flowId, userName, pageNum, pageSize);
-            ret.put("total", 10);
+            int total = this.depService.searchFlowRelationCount(depedProjectId, depedFlowId, projectId, flowId, userName);
+            ret.put("total", total);
             ret.put("data", result);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -284,6 +327,11 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         if (hasParam(req, "ajax")) {
             handleAJAXAction(req, resp, session);
         }
+    }
+
+    private void returnError(int code, String msg, Map<String, Object> ret) {
+        ret.put(CODE, code);
+        ret.put(MSG, msg);
     }
 
 

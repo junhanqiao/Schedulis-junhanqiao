@@ -164,7 +164,9 @@ public class DepService {
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         return depDao.searchFlowRelation(depedProjectId, depedFlowId, projectId, flowId, userName, pageNum, pageSize);
     }
-
+    public int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException {
+        return depDao.searchFlowRelationCount(depedProjectId, depedFlowId, projectId, flowId, userName);
+    }
     public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException {
         Instant nowInstant = Instant.now();
         depFlowRelation.setCreateTime(nowInstant);
@@ -175,6 +177,10 @@ public class DepService {
 
     public DepFlowRelation getDepFlowRelationByLogicKey(DepFlowRelation condition) throws SQLException {
         DepFlowRelation result = this.depDao.getDepFlowRelationByKey(condition);
+        return result;
+    }
+    public DepFlowRelation getDepFlowRelationByKey(int id) throws SQLException {
+        DepFlowRelation result = this.depDao.getDepFlowRelationByKey(id);
         return result;
     }
 
@@ -211,5 +217,9 @@ public class DepService {
         Set<String> flows = project.getFlowMap().keySet();
         return new ArrayList<>(flows);
 
+    }
+
+    public int deleteFlowRelationById(int id) throws SQLException {
+        return this.depDao.deleteFlowRelationById(id);
     }
 }

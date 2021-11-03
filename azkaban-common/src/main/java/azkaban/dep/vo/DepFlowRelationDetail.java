@@ -1,6 +1,7 @@
 package azkaban.dep.vo;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public class DepFlowRelationDetail {
     private int id;
@@ -10,10 +11,11 @@ public class DepFlowRelationDetail {
     private int projectId;
     private String projectName;
     private String flowId;
+    private String createUser;
     private Instant createTime;
     private Instant modifyTime;
 
-    public DepFlowRelationDetail(int id, int dependedProjectId, String dependedProjectName, String dependedFlowId, int projectId, String projectName, String flowId, Instant createTime, Instant modifyTime) {
+    public DepFlowRelationDetail(int id, int dependedProjectId, String dependedProjectName, String dependedFlowId, int projectId, String projectName, String flowId,String createUser, Instant createTime, Instant modifyTime) {
         this.id = id;
         this.dependedProjectId = dependedProjectId;
         this.dependedProjectName = dependedProjectName;
@@ -21,6 +23,7 @@ public class DepFlowRelationDetail {
         this.projectId = projectId;
         this.projectName = projectName;
         this.flowId = flowId;
+        this.createUser=createUser;
         this.createTime = createTime;
         this.modifyTime = modifyTime;
     }
@@ -84,6 +87,14 @@ public class DepFlowRelationDetail {
         this.flowId = flowId;
     }
 
+    public String getCreateUser() {
+        return createUser;
+    }
+
+    public void setCreateUser(String createUser) {
+        this.createUser = createUser;
+    }
+
     public Instant getCreateTime() {
         return createTime;
     }
@@ -98,5 +109,34 @@ public class DepFlowRelationDetail {
 
     public void setModifyTime(Instant modifyTime) {
         this.modifyTime = modifyTime;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DepFlowRelationDetail that = (DepFlowRelationDetail) o;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "DepFlowRelationDetail{" +
+                "id=" + id +
+                ", dependedProjectId=" + dependedProjectId +
+                ", dependedProjectName='" + dependedProjectName + '\'' +
+                ", dependedFlowId='" + dependedFlowId + '\'' +
+                ", projectId=" + projectId +
+                ", projectName='" + projectName + '\'' +
+                ", flowId='" + flowId + '\'' +
+                ", createUser='" + createUser + '\'' +
+                ", createTime=" + createTime +
+                ", modifyTime=" + modifyTime +
+                '}';
     }
 }

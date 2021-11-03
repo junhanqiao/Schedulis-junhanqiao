@@ -9,15 +9,17 @@ public class DepFlowRelation {
     private String dependedFlowId;
     private int projectId;
     private String flowId;
+    private String createUser;
     private Instant createTime;
     private Instant modifyTime;
 
-    public DepFlowRelation(int id, int dependedProjectId, String dependedFlowId, int projectId, String flowId, Instant createTime, Instant modifyTime) {
+    public DepFlowRelation(int id, int dependedProjectId, String dependedFlowId, int projectId, String flowId, String createUser, Instant createTime, Instant modifyTime) {
         this.id = id;
         this.dependedProjectId = dependedProjectId;
         this.dependedFlowId = dependedFlowId;
         this.projectId = projectId;
         this.flowId = flowId;
+        this.createUser = createUser;
         this.createTime = createTime;
         this.modifyTime = modifyTime;
     }
@@ -62,6 +64,14 @@ public class DepFlowRelation {
         this.flowId = flowId;
     }
 
+    public String getCreateUser() {
+        return createUser;
+    }
+
+    public void setCreateUser(String createUser) {
+        this.createUser = createUser;
+    }
+
     public Instant getCreateTime() {
         return createTime;
     }
@@ -99,6 +109,7 @@ public class DepFlowRelation {
                 ", dependedFlowId='" + dependedFlowId + '\'' +
                 ", projectId=" + projectId +
                 ", flowId='" + flowId + '\'' +
+                ", user='" + createUser + '\'' +
                 ", createTime=" + createTime +
                 ", modifyTime=" + modifyTime +
                 '}';

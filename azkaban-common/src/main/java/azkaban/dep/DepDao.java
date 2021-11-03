@@ -35,4 +35,8 @@ public interface DepDao {
     void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException;
     DepFlowRelation getDepFlowRelationByKey(DepFlowRelation depFlowRelation) throws  SQLException;
     DepFlowRelation getDepFlowRelationByKey(int id) throws  SQLException;
+
+    int deleteFlowRelationById(int id) throws SQLException;
+
+    int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException;
 }
