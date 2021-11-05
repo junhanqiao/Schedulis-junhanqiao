@@ -2,6 +2,7 @@ package azkaban.dep;
 
 import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.bo.ProjectBrief;
+import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.*;
 import azkaban.flow.Flow;
@@ -221,5 +222,12 @@ public class DepService {
 
     public int deleteFlowRelationById(int id) throws SQLException {
         return this.depDao.deleteFlowRelationById(id);
+    }
+
+    public List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws SQLException {
+        return depDao.searchFlowInstance(projectId,flowId,statuses,startTimeId,endTimeId,userName,pageNum,pageSize);
+    }
+    public int searchFlowInstanceCount(Integer projectId, String flowId,List<Integer> statuses,String startTimeId,String endTimeId, String userName) throws SQLException {
+        return depDao.searchFlowInstanceCount(projectId,flowId,statuses,startTimeId,endTimeId,userName);
     }
 }

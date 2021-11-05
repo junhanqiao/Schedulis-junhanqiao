@@ -1,11 +1,15 @@
 package azkaban.dep;
 
 import azkaban.db.DatabaseOperator;
+import azkaban.db.EncodingType;
 import azkaban.db.SQLTransaction;
 import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
+import azkaban.utils.GZIPUtils;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.ListUtils;
 import org.apache.commons.dbutils.ResultSetHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -13,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -20,6 +25,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 @Singleton
@@ -53,6 +59,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String QUERY_DEP_FLOW_RELATION_BY_KEY = "SELECT * FROM dep_flow_relation WHERE id=?";
     static final String DELETE_DEP_FLOW_RELATION_BY_KEY = "DELETE FROM dep_flow_relation WHERE id=?";
     static final String SEARCH_DEP_FLOW_RELATION_FROM_SQL = "from dep_flow_relation r join projects depedProject on (r.depended_project_id =depedProject .id ) JOIN projects p on (r.project_id =p.id ) ";
+    static final String SEARCH_DEP_FLOW_INSTANCE_FROM_SQL = " from dep_flow_instance i join projects p on (i.project_id =p.id ) LEFT join execution_flows f on (i.exec_id =f.exec_id ) ";
 
     @Inject
     public JdbcDepDaoImpl(DatabaseOperator databaseOperator) {
@@ -208,6 +215,44 @@ public class JdbcDepDaoImpl implements DepDao {
         return result;
     }
 
+    @Override
+    public List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws SQLException {
+        String select = " select i.*,p.name, f.enc_type,f.flow_data  \n";
+        Object[] whereAndParams = buildSearchFlowInstanceWhereAndParams(SEARCH_DEP_FLOW_INSTANCE_FROM_SQL, projectId, flowId, statuses, startTimeId, endTimeId, userName);
+        String fromAndWhere = (String) whereAndParams[0];
+        List<Object> params = (List<Object>) whereAndParams[1];
+        //pagination
+        String sql = StringUtils.join(select, fromAndWhere, " limit ?,?");
+
+        int startRowNum = (pageNum - 1) * pageSize;
+        params.add(startRowNum);
+        params.add(pageSize);
+
+        logger.debug("sql:{}", sql);
+        logger.debug("params:{}", params);
+        List<DepFlowInstanceDetail> result = this.dbOperator.query(sql, new DepFlowInstanceDetailHandler(), params.toArray());
+
+        return result;
+    }
+
+
+    @Override
+    public int searchFlowInstanceCount(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) throws SQLException {
+        String select = "select count(*) ";
+        Object[] whereAndParams = buildSearchFlowInstanceWhereAndParams(SEARCH_DEP_FLOW_INSTANCE_FROM_SQL, projectId, flowId, statuses, startTimeId, endTimeId, userName);
+        String fromAndWhere = (String) whereAndParams[0];
+        List<Object> params = (List<Object>) whereAndParams[1];
+        //pagination
+        String sql = StringUtils.join(select, fromAndWhere);
+
+
+        logger.debug("sql:{}", sql);
+        logger.debug("params:{}", params);
+        Integer result = this.dbOperator.query(sql, new IntHandler(), params.toArray());
+
+        return result;
+    }
+
     public static class FetchDepFlowInstanceHandler implements
             ResultSetHandler<List<
                     DepFlowInstance>> {
@@ -227,10 +272,8 @@ public class JdbcDepDaoImpl implements DepDao {
                 final LocalDateTime timeId = rs.getTimestamp("time_id").toLocalDateTime();
                 final DepFlowInstanceStatus status = DepFlowInstanceStatus.fromInt(rs.getInt("status"));
                 final int execId = rs.getInt("exec_id");
-                Timestamp createTimeTs = rs.getTimestamp("create_time");
-                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
-                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
-                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
+                Instant modifyTime = JdbcDepDaoImpl.getModifyTimeFromRs(rs);
+                Instant createTime = JdbcDepDaoImpl.getCreateTimeFromRs(rs);
                 DepFlowInstance instance = new DepFlowInstance(id, projectId, flowId, timeId, status, execId, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
@@ -260,11 +303,9 @@ public class JdbcDepDaoImpl implements DepDao {
                 final String depedProjectName = rs.getString("depended_project_name");
                 final String depedFlowId = rs.getString("depended_flow_id");
                 final String createUser = rs.getString("create_user");
-                Timestamp createTimeTs = rs.getTimestamp("create_time");
-                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
-                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
-                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
-                DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createUser,createTime, modifyTime);
+                Instant modifyTime = JdbcDepDaoImpl.getModifyTimeFromRs(rs);
+                Instant createTime = JdbcDepDaoImpl.getCreateTimeFromRs(rs);
+                DepFlowRelationDetail instance = new DepFlowRelationDetail(id, depedProjectId, depedProjectName, depedFlowId, projectId, projectName, flowId, createUser, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
 
@@ -290,11 +331,11 @@ public class JdbcDepDaoImpl implements DepDao {
                 final int depedProjectId = rs.getInt("depended_project_id");
                 final String depedFlowId = rs.getString("depended_flow_id");
                 final String createUser = rs.getString("create_user");
-                Timestamp createTimeTs = rs.getTimestamp("create_time");
-                final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
-                Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
-                final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
-                DepFlowRelation instance = new DepFlowRelation(id, depedProjectId, depedFlowId, projectId, flowId,createUser, createTime, modifyTime);
+
+                Instant modifyTime = JdbcDepDaoImpl.getModifyTimeFromRs(rs);
+                Instant createTime = JdbcDepDaoImpl.getCreateTimeFromRs(rs);
+
+                DepFlowRelation instance = new DepFlowRelation(id, depedProjectId, depedFlowId, projectId, flowId, createUser, createTime, modifyTime);
                 instances.add(instance);
             } while (rs.next());
 
@@ -310,6 +351,58 @@ public class JdbcDepDaoImpl implements DepDao {
                 return 0;
             }
             return rs.getInt(1);
+        }
+    }
+
+    private static class DepFlowInstanceDetailHandler implements ResultSetHandler<List<
+            DepFlowInstanceDetail>> {
+
+        @Override
+        public List<DepFlowInstanceDetail> handle(ResultSet rs) throws SQLException {
+            if (!rs.next()) {
+                return Collections.emptyList();
+            }
+
+            final List<DepFlowInstanceDetail> instances = new ArrayList<>();
+            do {
+                final int id = rs.getInt("id");
+                final int projectId = rs.getInt("project_id");
+                final String projectName = rs.getString("name");
+                final String flowId = rs.getString("flow_id");
+                final LocalDateTime timeId = rs.getTimestamp("time_id").toLocalDateTime();
+                final DepFlowInstanceStatus status = DepFlowInstanceStatus.fromInt(rs.getInt("status"));
+                final int execId = rs.getInt("exec_id");
+
+                DepFlowInstanceDetail instance = new DepFlowInstanceDetail(id, projectId, projectName, flowId, timeId, status, execId, null, null);
+
+                JdbcDepDaoImpl.extractBaseEntity(rs, instance);
+                // get ExecutableFlow
+
+                ExecutableFlow exFlow = null;
+                final int encodingType = rs.getInt("enc_type");
+                final byte[] data = rs.getBytes("flow_data");
+
+                if (data != null) {
+                    final EncodingType encType = EncodingType.fromInteger(encodingType);
+                    try {
+                        exFlow = ExecutableFlow.createExecutableFlowFromObject(
+                                GZIPUtils.transformBytesToObject(data, encType));
+                        instance.setSubmitUser(exFlow.getSubmitUser());
+                        instance.setStartTime(exFlow.getStartTime());
+                        instance.setEndTime(exFlow.getEndTime());
+                        instance.setDifftime(exFlow.getEndTime() - exFlow.getStartTime());
+                        instance.setExeStatus(exFlow.getStatus());
+                        instance.setFlowType(exFlow.getFlowType());
+                    } catch (final IOException e) {
+                        throw new SQLException("Error retrieving flow data " + id, e);
+                    }
+                }
+
+
+                instances.add(instance);
+            } while (rs.next());
+
+            return instances;
         }
     }
 
@@ -356,4 +449,80 @@ public class JdbcDepDaoImpl implements DepDao {
         return result;
 
     }
+
+    private Object[] buildSearchFlowInstanceWhereAndParams(String mainSql, Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) {
+        String sql = mainSql;
+        StringBuilder sb = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+
+        boolean isFirst = true;
+
+        if (projectId != null) {
+            sb.append(isFirst ? "" : " and ").append(" i.project_id=? ");
+            params.add(projectId);
+            isFirst = false;
+        }
+        if (flowId != null) {
+            sb.append(isFirst ? "" : " and ").append(" i.flow_id = ? ");
+            params.add(flowId);
+            isFirst = false;
+        }
+        if (CollectionUtils.isNotEmpty(statuses)) {
+            sb.append(isFirst ? "" : " and ").append(" i.status in (");
+
+            LinkedList<Integer> _statuses = new LinkedList<>(statuses);
+
+            Integer status = _statuses.remove();
+            sb.append("?");
+            params.add(status);
+
+            while (!_statuses.isEmpty()) {
+                status = _statuses.remove();
+                sb.append(",?");
+                params.add(status);
+            }
+            sb.append(") ");
+            isFirst = false;
+        }
+
+        if (startTimeId != null) {
+            sb.append(isFirst ? "" : " and ").append(" i.time_id >= ? ");
+            params.add(startTimeId);
+            isFirst = false;
+        }
+        if (endTimeId != null) {
+            sb.append(isFirst ? "" : " and ").append(" i.time_id <= ? ");
+            params.add(endTimeId);
+            isFirst = false;
+        }
+
+
+        String filterStr = sb.toString().trim().toLowerCase();
+        if (StringUtils.isNotBlank(filterStr)) {
+            sql = StringUtils.join(sql, " where ", filterStr);
+        }
+
+        Object[] result = {sql, params};
+        return result;
+    }
+
+    private static Instant getCreateTimeFromRs(ResultSet rs) throws SQLException {
+        Timestamp createTimeTs = rs.getTimestamp("create_time");
+        final Instant createTime = createTimeTs == null ? null : createTimeTs.toInstant();
+        return createTime;
+    }
+
+    private static Instant getModifyTimeFromRs(ResultSet rs) throws SQLException {
+        Timestamp modifyTimeTs = rs.getTimestamp("modify_time");
+        final Instant modifyTime = modifyTimeTs == null ? null : modifyTimeTs.toInstant();
+        return modifyTime;
+    }
+
+    private static void extractBaseEntity(ResultSet rs, BaseEntity be) throws SQLException {
+
+        be.setCreateTime(getCreateTimeFromRs(rs));
+        be.setModifyTime(getModifyTimeFromRs(rs));
+
+    }
+
 }

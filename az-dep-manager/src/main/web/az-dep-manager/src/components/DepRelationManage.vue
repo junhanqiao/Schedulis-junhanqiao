@@ -56,7 +56,7 @@ export default {
           customRender:(text, row, index)=>{
             let result="";
             if(row.createTime){
-              result=moment.unix(row.createTime.epochSecond).format()
+              result=moment(row.createTime).format()
             }
             return result;
           },
@@ -67,7 +67,7 @@ export default {
           customRender:(text, row, index)=>{
             let result="";
             if(row.modifyTime){
-              result=moment.unix(row.modifyTime.epochSecond).format()
+              result=moment(row.modifyTime).format()
             }
             return result;
           },

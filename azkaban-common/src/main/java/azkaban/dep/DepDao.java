@@ -1,6 +1,7 @@
 package azkaban.dep;
 
 import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
 
@@ -39,4 +40,8 @@ public interface DepDao {
     int deleteFlowRelationById(int id) throws SQLException;
 
     int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException;
+
+    List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws  SQLException;
+
+    int searchFlowInstanceCount(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) throws SQLException;
 }
