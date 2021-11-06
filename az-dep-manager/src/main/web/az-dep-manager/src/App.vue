@@ -7,26 +7,27 @@
         mode="horizontal"
         :default-selected-keys="['2']"
         :style="{ lineHeight: '64px' }"
+         @click="handleNavClick"
       >
-        <a-menu-item key="1">
+        <a-menu-item key="homepage">
           首页
         </a-menu-item>
-        <a-menu-item key="2">
+        <a-menu-item key="index">
           项目
         </a-menu-item>
-        <a-menu-item key="3">
+        <a-menu-item key="schedule">
           定时调度
         </a-menu-item>
-        <a-menu-item key="4">
+        <a-menu-item key="dep">
           依赖管理
         </a-menu-item>        
-        <a-menu-item key="5">
+        <a-menu-item key="executor">
           正在运行
         </a-menu-item>
-        <a-menu-item key="6">
+        <a-menu-item key="history">
           执行历史
         </a-menu-item>
-        <a-menu-item key="7">
+        <a-menu-item key="system">
           系统管理
         </a-menu-item>
         <a-sub-menu key="login">
@@ -42,11 +43,6 @@
     </a-layout-header>
     <a-layout>
       <a-layout style="padding: 0 24px 24px">
-        <a-breadcrumb style="margin: 16px 0">
-          <a-breadcrumb-item>Home</a-breadcrumb-item>
-          <a-breadcrumb-item>List</a-breadcrumb-item>
-          <a-breadcrumb-item>App</a-breadcrumb-item>
-        </a-breadcrumb>
         <a-layout-content
           :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }"
         >
@@ -75,7 +71,13 @@ export default {
       collapsed: false,
     };
   },
-  components:{DepRelationManage,DepExecManage}
+  components:{DepRelationManage,DepExecManage},
+  methods:{
+    handleNavClick(value){
+      window.location=value.key
+    },
+
+  }
 };
 </script>
 

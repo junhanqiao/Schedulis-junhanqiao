@@ -31,6 +31,17 @@ import java.util.List;
 @Singleton
 public class JdbcDepDaoImpl implements DepDao {
     private static final Logger logger = LoggerFactory.getLogger(JdbcDepDaoImpl.class);
+    private static final String UPDATE_STATUS_FOR_INSTANCE_NO_FATHER =
+    "update dep_flow_instance i,\n" +
+            "(\n" +
+            "    select id from(\n" +
+            "        select i.id,r.id as r_id\n" +
+            "        from dep_flow_instance i  left join dep_flow_relation r on( i.project_id =r.project_id  and i.flow_id =r.flow_id)\n" +
+            "        where i.status =?\n" +
+            "    ) as non_father_instance where  non_father_instance.r_id is null\n" +
+            ") as ready_instance\n" +
+            "set i.status=?\n" +
+            "where i.id=ready_instance.id";
     private final DatabaseOperator dbOperator;
     static final String UPDATE_DEP_FLOW_INSTANCES_STATUS = "UPDATE dep_flow_instance set status=?,modify_time=now() where id=? and status=?";
     static final String INSERT_DEPENDENT_INSTANCE = "insert into dep_flow_instance(project_id,flow_id,time_id,status,create_time,modify_time)\n" +
@@ -49,6 +60,7 @@ public class JdbcDepDaoImpl implements DepDao {
             "set i.status=?\n" +
             "where i.id=ready_instance.id";
     static final String GET_DEP_FLOW_INSTANCE_BY_LOGIC_KEY = "select * from dep_flow_instance where project_id=? and flow_id=? and time_id=?";
+    static final String GET_DEP_FLOW_INSTANCE_BY_KEY = "select * from dep_flow_instance where id=?";
 
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
@@ -86,6 +98,10 @@ public class JdbcDepDaoImpl implements DepDao {
         return efectRows;
     }
 
+    public int updateStatusForInstanceNoFather() throws SQLException {
+        int efectRows = this.dbOperator.update(UPDATE_STATUS_FOR_INSTANCE_NO_FATHER, DepFlowInstanceStatus.INIT.getValue(), DepFlowInstanceStatus.READY.getValue());
+        return efectRows;
+    }
 
     public void newDepFlowInstance(DepFlowInstance instance) throws SQLException {
 
@@ -117,6 +133,16 @@ public class JdbcDepDaoImpl implements DepDao {
         return result;
     }
 
+    @Override
+    public DepFlowInstance getDepFlowInstanceByKey(int id) throws SQLException {
+        List<DepFlowInstance> instances = this.dbOperator.query(GET_DEP_FLOW_INSTANCE_BY_KEY, new FetchDepFlowInstanceHandler(), id);
+        DepFlowInstance result = null;
+        if (instances.size() == 1) {
+            result = instances.get(0);
+        }
+        return result;
+    }
+
     public List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException {
         return this.dbOperator.query(QUERY_DEP_FLOW_INSTANCE_BY_STATUS, new FetchDepFlowInstanceHandler(), DepFlowInstanceStatus.READY.getValue(), 1000);
     }
@@ -129,7 +155,7 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException {
-        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(),null, instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
         return effectRows;
     }
 
@@ -222,12 +248,12 @@ public class JdbcDepDaoImpl implements DepDao {
         String fromAndWhere = (String) whereAndParams[0];
         List<Object> params = (List<Object>) whereAndParams[1];
         //pagination
-        String sql = StringUtils.join(select, fromAndWhere, " limit ?,?");
-
         int startRowNum = (pageNum - 1) * pageSize;
         params.add(startRowNum);
         params.add(pageSize);
 
+        String orderBy=" order by i.time_id desc,i.modify_time desc ";
+        String sql = StringUtils.join(select, fromAndWhere, orderBy, " limit ?,? ");
         logger.debug("sql:{}", sql);
         logger.debug("params:{}", params);
         List<DepFlowInstanceDetail> result = this.dbOperator.query(sql, new DepFlowInstanceDetailHandler(), params.toArray());
@@ -242,7 +268,6 @@ public class JdbcDepDaoImpl implements DepDao {
         Object[] whereAndParams = buildSearchFlowInstanceWhereAndParams(SEARCH_DEP_FLOW_INSTANCE_FROM_SQL, projectId, flowId, statuses, startTimeId, endTimeId, userName);
         String fromAndWhere = (String) whereAndParams[0];
         List<Object> params = (List<Object>) whereAndParams[1];
-        //pagination
         String sql = StringUtils.join(select, fromAndWhere);
 
 
@@ -417,7 +442,7 @@ public class JdbcDepDaoImpl implements DepDao {
             params.add(depedProjectId);
             isFirst = false;
         }
-        if (depedFlowId != null) {
+        if (StringUtils.isNotBlank(depedFlowId)) {
             filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.depended_flow_id like ? ");
             params.add(StringUtils.join('%', depedFlowId, '%'));
             isFirst = false;
@@ -427,7 +452,7 @@ public class JdbcDepDaoImpl implements DepDao {
             params.add(projectId);
             isFirst = false;
         }
-        if (flowId != null) {
+        if (StringUtils.isNotBlank(flowId)) {
             filterStr = StringUtils.join(filterStr, isFirst ? "" : " and ", " r.flow_id like ? ");
             params.add(StringUtils.join('%', flowId, '%'));
             isFirst = false;
@@ -462,7 +487,7 @@ public class JdbcDepDaoImpl implements DepDao {
             params.add(projectId);
             isFirst = false;
         }
-        if (flowId != null) {
+        if (StringUtils.isNotBlank(flowId)) {
             sb.append(isFirst ? "" : " and ").append(" i.flow_id = ? ");
             params.add(flowId);
             isFirst = false;
@@ -485,12 +510,12 @@ public class JdbcDepDaoImpl implements DepDao {
             isFirst = false;
         }
 
-        if (startTimeId != null) {
+        if (StringUtils.isNotBlank(startTimeId)) {
             sb.append(isFirst ? "" : " and ").append(" i.time_id >= ? ");
             params.add(startTimeId);
             isFirst = false;
         }
-        if (endTimeId != null) {
+        if (StringUtils.isNotBlank(endTimeId)) {
             sb.append(isFirst ? "" : " and ").append(" i.time_id <= ? ");
             params.add(endTimeId);
             isFirst = false;

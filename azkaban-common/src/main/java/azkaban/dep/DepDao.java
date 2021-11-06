@@ -17,10 +17,12 @@ public interface DepDao {
     int initDependentInstance(DepFlowInstance instance) throws SQLException;
 
     int updateStatusForReadyedIntance() throws SQLException;
+    int updateStatusForInstanceNoFather() throws SQLException;
 
     void newDepFlowInstance(DepFlowInstance instance) throws SQLException;
 
     DepFlowInstance getOneDepFlowInstance(int projectId, String flowId, LocalDateTime timeId) throws SQLException;
+    DepFlowInstance getDepFlowInstanceByKey(int id) throws SQLException;
 
     List<DepFlowInstance> getReadyDepFlowInstances() throws SQLException;
 

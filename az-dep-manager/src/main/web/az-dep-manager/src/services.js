@@ -61,6 +61,26 @@ function deleteFlowRelation(id, sucCallBack, failCallBack) {
     }    
     axios.post('/dep',{},config).then(sucCallBack).catch(failCallBack)
 }
+
+function searchFlowInstance(params, sucCallBack, failCallBack) {
+    let config={
+        params: {
+            ...params,
+            ajax:'searchFlowInstance'
+        }        
+    }    
+    axios.get('/dep',config).then(sucCallBack).catch(failCallBack)
+}
+
+function redoFlowInstance(data, sucCallBack, failCallBack) {
+    let config={
+        params:{
+            ajax:'redoFlowInstance'
+        }
+    }    
+    axios.post('/dep',data,config).then(sucCallBack).catch(failCallBack)
+}
+
 export default {
     searchProjectByName,
     searchUserProjectByName,
@@ -68,4 +88,6 @@ export default {
     getFlowsByProject,
     addFlowRelation,
     deleteFlowRelation,
+    searchFlowInstance,
+    redoFlowInstance,
 }

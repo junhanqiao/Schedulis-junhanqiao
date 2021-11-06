@@ -15,11 +15,15 @@ public class DepSchedulerDaemonTask implements DepDaemonTask {
     @Override
     public void run() throws Exception {
 
-        int effectedRows = this.depService.scheduleReadyService();
+        int effectedRows = this.depService.scheduleReadyInstance();
 
         if (effectedRows > 0) {
             logger.info("{} instances becamed ready", effectedRows);
         }
 
+        int effecdRowsNoFather = this.depService.scheduleReadyInstanceNoFather();
+        if (effectedRows > 0) {
+            logger.info("{} no father instances becamed ready", effecdRowsNoFather);
+        }
     }
 }

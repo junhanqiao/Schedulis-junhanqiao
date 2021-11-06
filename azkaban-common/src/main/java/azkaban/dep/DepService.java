@@ -72,7 +72,7 @@ public class DepService {
 
     }
 
-    private int redoDepFlowInstance(DepFlowInstance instance) throws SQLException {
+    public int redoDepFlowInstance(DepFlowInstance instance) throws SQLException {
         int effectedRows = this.depDao.updateStatusForRedoedIntance(instance);
         logger.info("DepFlowInstance redo {} rows, instance:{}", effectedRows, instance);
         return effectedRows;
@@ -104,8 +104,13 @@ public class DepService {
         }
     }
 
-    public int scheduleReadyService() throws SQLException {
+    public int scheduleReadyInstance() throws SQLException {
         int effectedRows = this.depDao.updateStatusForReadyedIntance();
+        return effectedRows;
+    }
+
+    public int scheduleReadyInstanceNoFather() throws SQLException {
+        int effectedRows = this.depDao.updateStatusForInstanceNoFather();
         return effectedRows;
     }
 
@@ -165,9 +170,11 @@ public class DepService {
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         return depDao.searchFlowRelation(depedProjectId, depedFlowId, projectId, flowId, userName, pageNum, pageSize);
     }
+
     public int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException {
         return depDao.searchFlowRelationCount(depedProjectId, depedFlowId, projectId, flowId, userName);
     }
+
     public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException {
         Instant nowInstant = Instant.now();
         depFlowRelation.setCreateTime(nowInstant);
@@ -180,6 +187,7 @@ public class DepService {
         DepFlowRelation result = this.depDao.getDepFlowRelationByKey(condition);
         return result;
     }
+
     public DepFlowRelation getDepFlowRelationByKey(int id) throws SQLException {
         DepFlowRelation result = this.depDao.getDepFlowRelationByKey(id);
         return result;
@@ -225,9 +233,26 @@ public class DepService {
     }
 
     public List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws SQLException {
-        return depDao.searchFlowInstance(projectId,flowId,statuses,startTimeId,endTimeId,userName,pageNum,pageSize);
+        return depDao.searchFlowInstance(projectId, flowId, statuses, startTimeId, endTimeId, userName, pageNum, pageSize);
     }
-    public int searchFlowInstanceCount(Integer projectId, String flowId,List<Integer> statuses,String startTimeId,String endTimeId, String userName) throws SQLException {
-        return depDao.searchFlowInstanceCount(projectId,flowId,statuses,startTimeId,endTimeId,userName);
+
+    public int searchFlowInstanceCount(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) throws SQLException {
+        return depDao.searchFlowInstanceCount(projectId, flowId, statuses, startTimeId, endTimeId, userName);
+    }
+
+    public DepFlowInstance getDepFlowInstance(int id) throws SQLException {
+        return depDao.getDepFlowInstanceByKey(id);
+    }
+
+    /**
+     *
+     * @param instance
+     * @throws Exception
+     */
+    public void checkCanRedoFlowInstance(DepFlowInstance instance) throws Exception {
+        DepFlowInstance existedInstance = this.getDepFlowInstance(instance.getId());
+        if (existedInstance == null) {
+            throw new Exception("instance not exist,can`t redo ");
+        }
     }
 }

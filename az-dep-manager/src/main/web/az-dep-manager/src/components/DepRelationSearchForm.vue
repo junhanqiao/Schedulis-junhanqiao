@@ -123,8 +123,8 @@ export default {
       services.searchProjectByName(
         value,
         res => {
-          if (res.data.code) {
-            this.$message.error(res.data.message);
+          if (res.data.code!=0) {
+            this.$message.error(res.data.message||"Something error");
             return;
           }
           this.depedProjects = res.data.data;
@@ -139,8 +139,8 @@ export default {
       services.getFlowsByProject(
         value,
         res => {
-          if (res.data.code) {
-            this.$message.error(res.data.message);
+          if (res.data.code!=0) {
+            this.$message.error(res.data.message||"Something error");
             return;
           }
           this.depedFlows = res.data.data;
@@ -158,8 +158,8 @@ export default {
       services.searchUserProjectByName(
         value,
         res => {
-          if (res.data.code) {
-            this.$message.error(res.data.message);
+          if (res.data.code!=0) {
+            this.$message.error(res.data.message||"Something error");
             return;
           }
           this.projects = res.data.data;
@@ -174,8 +174,8 @@ export default {
       services.getFlowsByProject(
         value,
         res => {
-          if (res.data.code) {
-            this.$message.error(res.data.message);
+          if (res.data.code!=0) {
+            this.$message.error(res.data.message||"Something error");
             return;
           }
           this.flows = res.data.data;
@@ -221,15 +221,15 @@ export default {
       services.searchDepRelations(
         params,
         res => {
-          if (res.data.code) {
-            this.$message.error(res.data.message);
+          if (res.data.code!=0) {
+            this.$message.error(res.data.message||"Something error");
             return;
           }
           this.total=res.data.total
           this.searchCallBack(res.data);
         },
         res => {
-          this.$message.error("Error");
+          this.$message.error("Something error");
         }
       );
     },

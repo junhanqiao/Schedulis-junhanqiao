@@ -1,6 +1,7 @@
 package com.bjwgby.az.dep.manager.servlet;
 
 import azkaban.ServiceProvider;
+import azkaban.dep.DepFlowInstance;
 import azkaban.dep.DepService;
 import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.bo.ProjectBrief;
@@ -17,14 +18,17 @@ import azkaban.utils.Props;
 import azkaban.webapp.servlet.LoginAbstractAzkabanServlet;
 import azkaban.webapp.servlet.Page;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.google.gson.JsonObject;
 import com.google.inject.Injector;
 import com.webank.wedatasphere.schedulis.common.utils.GsonUtils;
+import org.apache.commons.io.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -124,11 +128,13 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             deleteFlowRelation(req, resp, session, ret);
         } else if (ajaxName.equals("searchFlowInstance")) {
             searchFlowInstance(req, resp, session, ret);
+        } else if (ajaxName.equals("redoFlowInstance")) {
+            redoFlowInstance(req, resp, session, ret);
         }
 
         if (ret != null) {
 //            this.writeJSON(resp, ret);
-            this.writeJsonResult(resp,ret);
+            this.writeJsonResult(resp, ret);
         }
     }
 
@@ -329,7 +335,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         Integer projectId = HttpRequestUtils.hasParam(req, "projectId") ? getIntParam(req, "projectId") : null;
         String flowId = getParam(req, "flowId", null);
 
-        List<Integer> statuses = this.getIntParamList(req, "statuses", null);
+        List<Integer> statuses = this.getIntParamList(req, "statuses[]", null);
         String startTimeId = getParam(req, "startTimeId", null);
         String endTimeId = getParam(req, "endTimeId", null);
         String userName = user.getUserId();
@@ -360,6 +366,44 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         }
     }
 
+    private void redoFlowInstance(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
+        User user = session.getUser();
+        DepFlowInstance instance = this.getJsonObject(req, DepFlowInstance.class);
+
+        Project project = projectManager.getProject(instance.getProjectId());
+        if (project == null) {
+            returnError(1, " project does not exist", ret);
+            return;
+        }
+        if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+            returnError(1, "does not have permission on project!", ret);
+            return;
+        }
+
+        Flow flow = project.getFlow(instance.getFlowId());
+        if (flow == null) {
+            returnError(1, "flow does not exist", ret);
+
+            return;
+        }
+
+        try {
+            this.depService.checkCanRedoFlowInstance(instance);
+        } catch (Exception e) {
+            logger.error("something error,pls check", e);
+            returnError(1, e.getMessage(), ret);
+        }
+        try {
+            int effectRowNum = this.depService.redoDepFlowInstance(instance);
+
+            ret.put(CODE, 0);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            returnError(1, "something error,pls check", ret);
+            return;
+        }
+    }
+
     @Override
     protected void handlePost(final HttpServletRequest req, final HttpServletResponse resp,
                               final Session session) throws ServletException, IOException {
@@ -385,11 +429,27 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         }
         return result;
     }
-    private void writeJsonResult(final HttpServletResponse resp,Object obj) throws IOException {
+
+    private void writeJsonResult(final HttpServletResponse resp, Object obj) throws IOException {
         resp.setContentType(JSON_MIME_TYPE);
         String result = JSON.toJSONString(obj);
         resp.getWriter().write(result);
         resp.flushBuffer();
+
+    }
+
+
+    private <T> T getJsonObject(final HttpServletRequest req, Class<T> clazz) {
+        T result = null;
+        try {
+
+            ServletInputStream is = req.getInputStream();
+            result = JSON.parseObject(is, Charsets.UTF_8, clazz);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
 
     }
 
