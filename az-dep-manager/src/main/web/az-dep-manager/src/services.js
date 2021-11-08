@@ -81,6 +81,15 @@ function redoFlowInstance(data, sucCallBack, failCallBack) {
     axios.post('/dep',data,config).then(sucCallBack).catch(failCallBack)
 }
 
+function loginUserInfo(params, sucCallBack, failCallBack) {
+    let config={
+        params: {
+            ajax:'loginUserInfo'
+        }        
+    }    
+    axios.get('/dep',config).then(sucCallBack).catch(failCallBack)
+}
+
 export default {
     searchProjectByName,
     searchUserProjectByName,
@@ -90,4 +99,5 @@ export default {
     deleteFlowRelation,
     searchFlowInstance,
     redoFlowInstance,
+    loginUserInfo,
 }

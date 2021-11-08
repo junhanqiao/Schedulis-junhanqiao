@@ -130,12 +130,27 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             searchFlowInstance(req, resp, session, ret);
         } else if (ajaxName.equals("redoFlowInstance")) {
             redoFlowInstance(req, resp, session, ret);
+        } else if (ajaxName.equals("loginUserInfo")) {
+            loginUserInfo(req, resp, session, ret);
         }
 
         if (ret != null) {
 //            this.writeJSON(resp, ret);
             this.writeJsonResult(resp, ret);
         }
+    }
+
+    private void loginUserInfo(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
+
+        User user = session.getUser();
+        if (user == null) {
+            this.returnError(1, "no userInfo,pls login first", ret);
+            return;
+        }
+        ret.put(CODE, 0);
+        ret.put(DATA, user);
+        return;
+
     }
 
     private void deleteFlowRelation(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) throws ServletException {

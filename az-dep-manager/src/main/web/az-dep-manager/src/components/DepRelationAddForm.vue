@@ -15,7 +15,7 @@
             <a-select
               show-search
               allowClear
-              placeholder="input search text"
+              placeholder="选择前置项目"
               :default-active-first-option="false"
               :show-arrow="false"
               :filter-option="false"
@@ -33,7 +33,7 @@
             <a-select
               show-search
               allowClear
-              placeholder="input search text"
+              placeholder="选择前置工作流"
               :default-active-first-option="false"
               :show-arrow="false"
               :filter-option="handleDepedFlowSearch"
@@ -51,7 +51,7 @@
             <a-select
               show-search
               allowClear
-              placeholder="input search text"
+              placeholder="选择项目"
               :default-active-first-option="false"
               :show-arrow="false"
               :filter-option="false"
@@ -69,7 +69,7 @@
             <a-select
               show-search
               allowClear
-              placeholder="input search text"
+              placeholder="选择工作流"
               :default-active-first-option="false"
               :show-arrow="false"
               :filter-option="handleFlowSearch"
@@ -126,6 +126,7 @@ export default {
         res => {
           if (res.data.code!=0) {
             this.$message.error(res.data.message||"Something error");
+            this.flows=[]
             return;
           }
           this.depedFlows = res.data.data;
@@ -159,6 +160,7 @@ export default {
         res => {
           if (res.data.code!=0) {
             this.$message.error(res.data.message||"Something error");
+            this.flows=[]
             return;
           }
           this.flows = res.data.data;

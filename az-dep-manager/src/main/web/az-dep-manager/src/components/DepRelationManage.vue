@@ -31,7 +31,6 @@ export default {
         {
           title: 'id',
           dataIndex: 'id',
-          width: '30%',
           scopedSlots: { customRender: 'id' },
         },
         {

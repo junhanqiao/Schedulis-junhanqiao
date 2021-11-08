@@ -31,7 +31,6 @@ export default {
         {
           title: 'id',
           dataIndex: 'id',
-          width: '30%',
           scopedSlots: { customRender: 'id' },
         },
         {
@@ -80,6 +79,13 @@ export default {
           },
         },
         {
+          title: '操作',
+          dataIndex: 'operation',
+          scopedSlots: { customRender: 'operation' },
+        },
+      ],
+      expertColumns:[
+        {
           title: '执行ID',
           dataIndex: 'execId',
         },
@@ -99,12 +105,7 @@ export default {
           title: '执行状态',
           dataIndex: 'exeStatus',
         },
-        {
-          title: '操作',
-          dataIndex: 'operation',
-          scopedSlots: { customRender: 'operation' },
-        },
-      ],      
+      ],
 
 
     };
