@@ -43,6 +43,8 @@ public interface DepDao {
 
     int searchFlowRelationCount(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName) throws SQLException;
 
+    List<DepFlowRelation> getAllFlowRelation() throws SQLException;
+
     List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws  SQLException;
 
     int searchFlowInstanceCount(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) throws SQLException;

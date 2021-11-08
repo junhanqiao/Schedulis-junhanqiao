@@ -222,6 +222,12 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     @Override
+    public List<DepFlowRelation> getAllFlowRelation() throws SQLException {
+        List<DepFlowRelation> result = this.dbOperator.query("select * from dep_flow_relation", new FetchDepFlowRelationHandler());
+        return result;
+    }
+
+    @Override
     public List<DepFlowRelationDetail> searchFlowRelation(Integer depedProjectId, String depedFlowId, Integer projectId, String flowId, String userName, int pageNum, int pageSize) throws SQLException {
         String select = "select r.*,depedProject.name as depended_project_name,p.name  as project_name \n";
         Object[] whereAndParams = buildWhereAndParams(SEARCH_DEP_FLOW_RELATION_FROM_SQL, depedProjectId, depedFlowId, projectId, flowId, userName);

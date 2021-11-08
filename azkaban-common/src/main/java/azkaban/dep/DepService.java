@@ -1,6 +1,7 @@
 package azkaban.dep;
 
 import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.bo.FlowNode;
 import azkaban.dep.bo.ProjectBrief;
 import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
@@ -10,6 +11,11 @@ import azkaban.flow.FlowUtils;
 import azkaban.project.Project;
 import azkaban.project.ProjectManager;
 import azkaban.user.User;
+import org.apache.commons.collections.CollectionUtils;
+import org.jgrapht.Graphs;
+import org.jgrapht.alg.cycle.CycleDetector;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,7 +181,8 @@ public class DepService {
         return depDao.searchFlowRelationCount(depedProjectId, depedFlowId, projectId, flowId, userName);
     }
 
-    public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException {
+    public void newDepFlowRelation(DepFlowRelation depFlowRelation) throws SQLException, CycleDepRelationException {
+        checkCycleDepRelation(depFlowRelation);
         Instant nowInstant = Instant.now();
         depFlowRelation.setCreateTime(nowInstant);
         depFlowRelation.setModifyTime(nowInstant);
@@ -245,7 +252,6 @@ public class DepService {
     }
 
     /**
-     *
      * @param instance
      * @throws Exception
      */
@@ -254,5 +260,35 @@ public class DepService {
         if (existedInstance == null) {
             throw new Exception("instance not exist,can`t redo ");
         }
+    }
+
+    public void checkCycleDepRelation(DepFlowRelation relation) throws CycleDepRelationException, SQLException {
+        DefaultDirectedGraph<FlowNode, DefaultEdge> graph = this.getFlowRelationGraph();
+        FlowNode src = new FlowNode(relation.getDependedProjectId(), relation.getDependedFlowId());
+        FlowNode dst = new FlowNode(relation.getProjectId(), relation.getFlowId());
+        Graphs.addEdgeWithVertices(graph, src, dst);
+
+        CycleDetector<FlowNode, DefaultEdge> cycleDetector = new CycleDetector<>(graph);
+
+        if (cycleDetector.detectCycles()) {
+            Set<FlowNode> cycleNodes = cycleDetector.findCycles();
+            throw new CycleDepRelationException("Cycle dep not allowed:" + cycleNodes);
+        }
+
+    }
+
+    public DefaultDirectedGraph<FlowNode, DefaultEdge> getFlowRelationGraph() throws SQLException {
+        List<DepFlowRelation> relations = this.depDao.getAllFlowRelation();
+
+        DefaultDirectedGraph<FlowNode, DefaultEdge> graph = new DefaultDirectedGraph<FlowNode, DefaultEdge>(DefaultEdge.class);
+
+        if (CollectionUtils.isNotEmpty(relations)) {
+            for (DepFlowRelation relation : relations) {
+                FlowNode src = new FlowNode(relation.getDependedProjectId(), relation.getDependedFlowId());
+                FlowNode dst = new FlowNode(relation.getProjectId(), relation.getFlowId());
+                Graphs.addEdgeWithVertices(graph, src, dst);
+            }
+        }
+        return graph;
     }
 }

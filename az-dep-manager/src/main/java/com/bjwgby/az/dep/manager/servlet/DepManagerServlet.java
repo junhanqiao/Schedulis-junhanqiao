@@ -1,6 +1,7 @@
 package com.bjwgby.az.dep.manager.servlet;
 
 import azkaban.ServiceProvider;
+import azkaban.dep.CycleDepRelationException;
 import azkaban.dep.DepFlowInstance;
 import azkaban.dep.DepService;
 import azkaban.dep.bo.DepFlowRelation;
@@ -18,7 +19,6 @@ import azkaban.utils.Props;
 import azkaban.webapp.servlet.LoginAbstractAzkabanServlet;
 import azkaban.webapp.servlet.Page;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.google.gson.JsonObject;
 import com.google.inject.Injector;
 import com.webank.wedatasphere.schedulis.common.utils.GsonUtils;
@@ -299,6 +299,10 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         } catch (SQLException e) {
             e.printStackTrace();
             returnError(1, "something error,pls check", ret);
+            return;
+        } catch (CycleDepRelationException e) {
+            e.printStackTrace();
+            returnError(1, "cycle dep relation found!", ret);
             return;
         }
 
