@@ -1,7 +1,7 @@
 <template>
   <a-layout id="components-layout-demo-top-side-2">
     <a-layout-header class="header">
-      <div class="logo" />
+      <img class="logo" src="./assets/wgby-schedule.png"/>
       <a-menu
         theme="dark"
         mode="horizontal"
@@ -12,10 +12,10 @@
         <a-menu-item key="homepage">首页</a-menu-item>
         <a-menu-item key="index">项目</a-menu-item>
         <a-menu-item key="schedule">定时调度</a-menu-item>
-        <a-menu-item key="dep">依赖管理</a-menu-item>
         <a-menu-item key="executor">正在运行</a-menu-item>
         <a-menu-item key="history">执行历史</a-menu-item>
         <a-menu-item key="system">系统管理</a-menu-item>
+        <a-menu-item key="dep">依赖管理</a-menu-item>        
         <a-sub-menu key="login">
           <span slot="title">
             <a-icon type="down" />
@@ -91,5 +91,9 @@ export default {
   background: rgba(255, 255, 255, 0.2);
   margin: 16px 28px 16px 0;
   float: left;
+}
+
+.ant-menu-item{
+font-size: 16px !important;
 }
 </style>

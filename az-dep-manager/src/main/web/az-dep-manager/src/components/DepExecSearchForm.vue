@@ -39,18 +39,19 @@
         <a-col :key="'timeIdRange'" :span="4">
           <a-form-item :label="`时间ID`">
             <a-range-picker
+              :ranges="formConf.dateRanges"
               :show-time="{ format: 'HH:mm:ss' }"
-              format="YYYY-MM-DD HH:mm:ss"
+              format="YYYY-MM-DD"
               :placeholder="['开始', '结束']"
               @change="onTimeIdRangeChange"
             />
           </a-form-item>
         </a-col>
-        <a-clo :key="'statuses'" :span="4">
+        <a-col :key="'statuses'" :span="5">
           <a-form-item :label="`实例状态`">
-            <a-checkbox-group :options="instanceStatusOptions" v-decorator="['statuses']" />
+            <a-checkbox-group :options="formConf.instanceStatusOptions" v-decorator="['statuses']" />
           </a-form-item>
-        </a-clo>
+        </a-col>
       </a-row>
 
       <a-row>
@@ -92,13 +93,17 @@ export default {
       addFormVisible: false,
       startTimeId: null,
       endTimeId: null,
-      instanceStatusOptions: [
-        { label: "INIT", value: 0 },
-        { label: "READY", value: 1 },
-        { label: "SUBMITTED", value: 2 },
-        { label: "SUCCESS", value: 3 },
-        { label: "FAILED", value: 4 }
-      ]
+
+      formConf: {
+        dateRanges: { 今天: [moment(), moment()] },
+        instanceStatusOptions: [
+          { label: "INIT", value: 0 },
+          { label: "READY", value: 1 },
+          { label: "SUBMITTED", value: 2 },
+          { label: "SUCCESS", value: 3 },
+          { label: "FAILED", value: 4 }
+        ]
+      }
     };
   },
   computed: {},
@@ -125,7 +130,7 @@ export default {
         res => {
           if (res.data.code != 0) {
             this.$message.error(res.data.message || "Something error");
-            this.flows=[]
+            this.flows = [];
             return;
           }
           this.flows = res.data.data;

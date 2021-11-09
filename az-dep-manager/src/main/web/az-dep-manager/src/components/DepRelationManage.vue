@@ -21,6 +21,7 @@
 import DepRelationSearchForm from './DepRelationSearchForm'
 import moment from 'moment'
 import services from '../services';
+let tsFormat = "YYYY-MM-DD HH:mm:ss"
 export default {
   name: 'DepRelationManage',  
   components:{DepRelationSearchForm},
@@ -29,9 +30,12 @@ export default {
       tableData: [],
       columns: [
         {
-          title: 'id',
-          dataIndex: 'id',
-          scopedSlots: { customRender: 'id' },
+          title: '项目',
+          dataIndex: 'projectName',
+        },
+        {
+          title: '工作流',
+          dataIndex: 'flowId',
         },
         {
           title: '前置项目',
@@ -42,20 +46,12 @@ export default {
           dataIndex: 'dependedFlowId',
         },
         {
-          title: '项目',
-          dataIndex: 'projectName',
-        },
-        {
-          title: '工作流',
-          dataIndex: 'flowId',
-        },
-        {
           title: '创建时间',
           dataIndex: 'createTime',
           customRender:(text, row, index)=>{
             let result="";
             if(row.createTime){
-              result=moment(row.createTime).format()
+              result=moment(row.createTime).format(tsFormat)
             }
             return result;
           },
@@ -66,7 +62,7 @@ export default {
           customRender:(text, row, index)=>{
             let result="";
             if(row.modifyTime){
-              result=moment(row.modifyTime).format()
+              result=moment(row.modifyTime).format(tsFormat)
             }
             return result;
           },
