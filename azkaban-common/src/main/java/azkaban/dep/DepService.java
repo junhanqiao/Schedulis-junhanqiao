@@ -3,6 +3,9 @@ package azkaban.dep;
 import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.bo.FlowNode;
 import azkaban.dep.bo.ProjectBrief;
+import azkaban.dep.exception.CycleDepRelationException;
+import azkaban.dep.exception.FlowInstanceNotExistException;
+import azkaban.dep.exception.FollowingFlowNotFinishException;
 import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.*;
@@ -16,6 +19,7 @@ import org.jgrapht.Graphs;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.traverse.BreadthFirstIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -255,11 +259,30 @@ public class DepService {
      * @param instance
      * @throws Exception
      */
-    public void checkCanRedoFlowInstance(DepFlowInstance instance) throws Exception {
+    public void checkCanRedoFlowInstance(DepFlowInstance instance) throws FollowingFlowNotFinishException, FlowInstanceNotExistException, SQLException {
         DepFlowInstance existedInstance = this.getDepFlowInstance(instance.getId());
         if (existedInstance == null) {
-            throw new Exception("instance not exist,can`t redo ");
+            throw new FlowInstanceNotExistException("instance not exist,can`t redo ");
         }
+        FlowNode src = new FlowNode(instance.getProjectId(), instance.getFlowId());
+
+        DefaultDirectedGraph<FlowNode, DefaultEdge> g = this.getFlowRelationGraph();
+        BreadthFirstIterator<FlowNode, DefaultEdge> followingNodes = new BreadthFirstIterator<>(g,src);
+        List<FlowNode> successors = new ArrayList<>();
+        CollectionUtils.addAll(successors,followingNodes);
+
+        if (CollectionUtils.isNotEmpty(successors)) {
+            List<DepFlowInstance> runningInstances = this.getRunningInstances(successors, existedInstance.getTimeId());
+            if(CollectionUtils.isNotEmpty(runningInstances)){
+                throw new FollowingFlowNotFinishException("following instance not finished:"+runningInstances);
+            }
+        }
+
+    }
+
+    private List<DepFlowInstance> getRunningInstances(List<FlowNode> successors, LocalDateTime timeId) throws SQLException {
+        List<DepFlowInstance> result = this.depDao.getRunningInstances(successors, timeId);
+        return result;
     }
 
     public void checkCycleDepRelation(DepFlowRelation relation) throws CycleDepRelationException, SQLException {

@@ -1,7 +1,7 @@
 package com.bjwgby.az.dep.manager.servlet;
 
 import azkaban.ServiceProvider;
-import azkaban.dep.CycleDepRelationException;
+import azkaban.dep.exception.CycleDepRelationException;
 import azkaban.dep.DepFlowInstance;
 import azkaban.dep.DepService;
 import azkaban.dep.bo.DepFlowRelation;
@@ -409,12 +409,12 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
         try {
             this.depService.checkCanRedoFlowInstance(instance);
         } catch (Exception e) {
-            logger.error("something error,pls check", e);
+            logger.error("check failed,can`t redo,pls check", e);
             returnError(1, e.getMessage(), ret);
+            return;
         }
         try {
             int effectRowNum = this.depService.redoDepFlowInstance(instance);
-
             ret.put(CODE, 0);
         } catch (SQLException e) {
             e.printStackTrace();

@@ -4,6 +4,7 @@ import azkaban.db.DatabaseOperator;
 import azkaban.db.EncodingType;
 import azkaban.db.SQLTransaction;
 import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.bo.FlowNode;
 import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
@@ -32,16 +33,16 @@ import java.util.List;
 public class JdbcDepDaoImpl implements DepDao {
     private static final Logger logger = LoggerFactory.getLogger(JdbcDepDaoImpl.class);
     private static final String UPDATE_STATUS_FOR_INSTANCE_NO_FATHER =
-    "update dep_flow_instance i,\n" +
-            "(\n" +
-            "    select id from(\n" +
-            "        select i.id,r.id as r_id\n" +
-            "        from dep_flow_instance i  left join dep_flow_relation r on( i.project_id =r.project_id  and i.flow_id =r.flow_id)\n" +
-            "        where i.status =?\n" +
-            "    ) as non_father_instance where  non_father_instance.r_id is null\n" +
-            ") as ready_instance\n" +
-            "set i.status=?\n" +
-            "where i.id=ready_instance.id";
+            "update dep_flow_instance i,\n" +
+                    "(\n" +
+                    "    select id from(\n" +
+                    "        select i.id,r.id as r_id\n" +
+                    "        from dep_flow_instance i  left join dep_flow_relation r on( i.project_id =r.project_id  and i.flow_id =r.flow_id)\n" +
+                    "        where i.status =?\n" +
+                    "    ) as non_father_instance where  non_father_instance.r_id is null\n" +
+                    ") as ready_instance\n" +
+                    "set i.status=?\n" +
+                    "where i.id=ready_instance.id";
     private final DatabaseOperator dbOperator;
     static final String UPDATE_DEP_FLOW_INSTANCES_STATUS = "UPDATE dep_flow_instance set status=?,modify_time=now() where id=? and status=?";
     static final String INSERT_DEPENDENT_INSTANCE = "insert into dep_flow_instance(project_id,flow_id,time_id,status,create_time,modify_time)\n" +
@@ -65,7 +66,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
     static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
-    static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO schedulis.dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_user,create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?,?)";
+    static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_user,create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?,?)";
 
     static final String QUERY_DEP_FLOW_RELATION_BY_LOGIC_KEY = "SELECT * FROM dep_flow_relation WHERE depended_project_id=? AND  depended_flow_id = ? AND   project_id = ? AND  flow_id = ?";
     static final String QUERY_DEP_FLOW_RELATION_BY_KEY = "SELECT * FROM dep_flow_relation WHERE id=?";
@@ -155,7 +156,7 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException {
-        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(),null, instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
+        int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), null, instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
         return effectRows;
     }
 
@@ -258,7 +259,7 @@ public class JdbcDepDaoImpl implements DepDao {
         params.add(startRowNum);
         params.add(pageSize);
 
-        String orderBy=" order by i.time_id desc,i.modify_time desc ";
+        String orderBy = " order by i.time_id desc,i.modify_time desc ";
         String sql = StringUtils.join(select, fromAndWhere, orderBy, " limit ?,? ");
         logger.debug("sql:{}", sql);
         logger.debug("params:{}", params);
@@ -282,6 +283,52 @@ public class JdbcDepDaoImpl implements DepDao {
         Integer result = this.dbOperator.query(sql, new IntHandler(), params.toArray());
 
         return result;
+    }
+
+    public List<DepFlowInstance> getRunningInstances(List<FlowNode> successors, LocalDateTime timeId) throws SQLException {
+        String mainSQL = "select * from dep_flow_instance where status in (0,1,2) ";
+
+        String timeIdSQL = " time_id = ?";
+        List<Object> params = new ArrayList<>();
+        params.add(timeId);
+
+
+        List<DepFlowInstance> instances = null;
+
+        if(CollectionUtils.isNotEmpty(successors)){
+            StringBuilder flowNodesSQLBuilder = new StringBuilder(" (project_id,flow_id) in ( ");
+
+            LinkedList<FlowNode> _statuses = new LinkedList<>(successors);
+
+            FlowNode node = _statuses.remove();
+            flowNodesSQLBuilder.append("(?,?)");
+            params.add(node.getProjectId());
+            params.add(node.getFlowId());
+
+            while (!_statuses.isEmpty()) {
+                node = _statuses.remove();
+                flowNodesSQLBuilder.append(",(?,?)");
+                params.add(node.getProjectId());
+                params.add(node.getFlowId());
+            }
+            flowNodesSQLBuilder.append(") ");
+
+            String flowNodesSQL =flowNodesSQLBuilder.toString();
+
+            String sql = StringUtils.join(mainSQL," and ",timeIdSQL," and ",flowNodesSQL);
+
+            logger.debug("sql:{}", sql);
+            logger.debug("params:{}", params);
+
+            instances = this.dbOperator.query(sql, new FetchDepFlowInstanceHandler(), params.toArray());
+        }else{
+            instances = ListUtils.EMPTY_LIST;
+        }
+
+
+
+
+        return instances;
     }
 
     public static class FetchDepFlowInstanceHandler implements

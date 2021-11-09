@@ -1,6 +1,7 @@
 package azkaban.dep;
 
 import azkaban.dep.bo.DepFlowRelation;
+import azkaban.dep.bo.FlowNode;
 import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
 import azkaban.executor.ExecutableFlow;
@@ -48,4 +49,6 @@ public interface DepDao {
     List<DepFlowInstanceDetail> searchFlowInstance(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName, int pageNum, int pageSize) throws  SQLException;
 
     int searchFlowInstanceCount(Integer projectId, String flowId, List<Integer> statuses, String startTimeId, String endTimeId, String userName) throws SQLException;
+
+    List<DepFlowInstance> getRunningInstances(List<FlowNode> successors, LocalDateTime timeId) throws SQLException;
 }

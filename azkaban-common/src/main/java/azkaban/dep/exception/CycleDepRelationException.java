@@ -1,4 +1,4 @@
-package azkaban.dep;
+package azkaban.dep.exception;
 
 public class CycleDepRelationException extends Exception {
     public CycleDepRelationException() {
