@@ -286,7 +286,7 @@ public class JdbcDepDaoImpl implements DepDao {
     }
 
     public List<DepFlowInstance> getRunningInstances(List<FlowNode> successors, LocalDateTime timeId) throws SQLException {
-        String mainSQL = "select * from dep_flow_instance where status in (0,1,2) ";
+        String mainSQL = "select * from dep_flow_instance where status in (1,2) ";
 
         String timeIdSQL = " time_id = ?";
         List<Object> params = new ArrayList<>();
