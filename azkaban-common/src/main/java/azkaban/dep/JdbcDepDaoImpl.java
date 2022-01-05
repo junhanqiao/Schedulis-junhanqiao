@@ -53,7 +53,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String UPDATE_STATUS_FOR_READYED_INSTANCE = "update dep_flow_instance i,\n" +
             "(select i.id \n" +
             "from dep_flow_instance i join dep_flow_relation  r on (i.project_id =r.project_id  and i.flow_id =r.flow_id ) \n" +
-            "join dep_flow_instance id on (id.project_id =r.depended_project_id  and id.flow_id =r.depended_flow_id  and id.time_id =i.time_id )\n" +
+            "left join dep_flow_instance id on (id.project_id =r.depended_project_id  and id.flow_id =r.depended_flow_id  and id.time_id =i.time_id )\n" +
             "where i.status = ?\n" +
             "group by i.id\n" +
             "HAVING  count(if(id.status=? ,1,null))=count(*)\n" +
