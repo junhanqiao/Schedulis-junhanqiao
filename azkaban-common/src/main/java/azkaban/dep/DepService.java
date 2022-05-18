@@ -267,6 +267,9 @@ public class DepService {
         FlowNode src = new FlowNode(instance.getProjectId(), instance.getFlowId());
 
         DefaultDirectedGraph<FlowNode, DefaultEdge> g = this.getFlowRelationGraph();
+        if (!g.containsVertex(src)) {
+            return;
+        }
         BreadthFirstIterator<FlowNode, DefaultEdge> followingNodes = new BreadthFirstIterator<>(g,src);
         List<FlowNode> successors = new ArrayList<>();
         CollectionUtils.addAll(successors,followingNodes);
