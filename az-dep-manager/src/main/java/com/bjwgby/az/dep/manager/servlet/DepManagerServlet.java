@@ -177,7 +177,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             }
 
             User user = session.getUser();
-            if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+            if (!project.hasPermission(user, Permission.Type.SCHEDULE)) {
                 this.returnError(1, "no permission", ret);
                 return;
             }
@@ -268,7 +268,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             returnError(1, " project does not exist", ret);
             return;
         }
-        if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+        if (!(project.hasPermission(user, Permission.Type.SCHEDULE))) {
             returnError(1, "does not have permission on project!", ret);
             return;
         }
@@ -328,7 +328,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
                     return;
                 }
 
-                if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+                if (!project.hasPermission(user, Permission.Type.SCHEDULE)) {
                     this.returnError(1, "no permission", ret);
                     return;
                 }
@@ -394,7 +394,7 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             returnError(1, " project does not exist", ret);
             return;
         }
-        if (!project.hasPermission(user, Permission.Type.ADMIN)) {
+        if (!project.hasPermission(user, Permission.Type.EXECUTE)) {
             returnError(1, "does not have permission on project!", ret);
             return;
         }

@@ -218,7 +218,7 @@ public class DepService {
 
     public List<ProjectBrief> searchUserProjectByName(String searchText, User user) {
         List<ProjectBrief> result = new ArrayList<>();
-        List<Project> projects = this.projectManager.getUserPersonProjectsByRegex(user, searchText, null);
+        List<Project> projects = this.projectManager.getUserProjectsByRegex(user, searchText, null);
 
         for (Project project : projects) {
             result.add(new ProjectBrief(project.getId(), project.getName()));
