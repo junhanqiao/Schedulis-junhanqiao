@@ -8,6 +8,8 @@ import azkaban.dep.bo.DepFlowRelation;
 import azkaban.dep.bo.ProjectBrief;
 import azkaban.dep.vo.DepFlowInstanceDetail;
 import azkaban.dep.vo.DepFlowRelationDetail;
+import azkaban.executor.ExecutionOptions;
+import azkaban.executor.ExecutorManagerException;
 import azkaban.flow.Flow;
 import azkaban.project.Project;
 import azkaban.project.ProjectManager;
@@ -130,6 +132,8 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             searchFlowInstance(req, resp, session, ret);
         } else if (ajaxName.equals("redoFlowInstance")) {
             redoFlowInstance(req, resp, session, ret);
+        } else if (ajaxName.equals("modifyAndRetryFlowInstance")) {
+            modifyAndRetryFlowInstance(req, resp, session, ret);
         } else if (ajaxName.equals("loginUserInfo")) {
             loginUserInfo(req, resp, session, ret);
         }
@@ -417,6 +421,68 @@ public class DepManagerServlet extends LoginAbstractAzkabanServlet {
             int effectRowNum = this.depService.redoDepFlowInstance(instance);
             ret.put(CODE, 0);
         } catch (SQLException e) {
+            e.printStackTrace();
+            returnError(1, "something error,pls check", ret);
+            return;
+        }
+    }
+    private void modifyAndRetryFlowInstance(HttpServletRequest req, HttpServletResponse resp, Session session, HashMap<String, Object> ret) {
+        User user = session.getUser();
+        DepFlowInstance instance = null;
+
+        try {
+            final int depInstId = getIntParam(req, "depInstId");
+            instance = this.depService.getDepFlowInstance(depInstId);
+            if (instance == null) {
+                returnError(1, "dep instance not exist,pls check", ret);
+                return;
+            }
+        } catch (ServletException e) {
+            e.printStackTrace();
+            returnError(1, "something error,pls check", ret);
+            return;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            returnError(1, "something error,pls check", ret);
+            return;
+        }
+
+
+        Project project = projectManager.getProject(instance.getProjectId());
+        if (project == null) {
+            returnError(1, " project does not exist", ret);
+            return;
+        }
+        if (!project.hasPermission(user, Permission.Type.EXECUTE)) {
+            returnError(1, "does not have permission on project!", ret);
+            return;
+        }
+
+        Flow flow = project.getFlow(instance.getFlowId());
+        if (flow == null) {
+            returnError(1, "flow does not exist", ret);
+
+            return;
+        }
+
+        try {
+            this.depService.checkCanRedoFlowInstance(instance);
+        } catch (Exception e) {
+            logger.error("check failed,can`t retry,pls check", e);
+            returnError(1, e.getMessage(), ret);
+            return;
+        }
+        try {
+            ExecutionOptions option=HttpRequestUtils.parseFlowOptions(req);
+            int execid = this.depService.submitExecution(instance, option);
+            ret.put(CODE, 0);
+            ret.put("execid", execid);
+            ret.put(MSG,"success");
+        } catch (ExecutorManagerException e) {
+            e.printStackTrace();
+            returnError(1, "something error,pls check", ret);
+            return;
+        } catch (ServletException e) {
             e.printStackTrace();
             returnError(1, "something error,pls check", ret);
             return;

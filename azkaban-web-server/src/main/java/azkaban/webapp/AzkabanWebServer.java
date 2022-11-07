@@ -19,6 +19,7 @@ package azkaban.webapp;
 import azkaban.dep.DepManager;
 import azkaban.executor.Status;
 import azkaban.server.HttpRequestUtils;
+import azkaban.webapp.servlet.*;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
@@ -105,20 +106,6 @@ import azkaban.utils.Utils;
 import azkaban.webapp.plugin.PluginRegistry;
 import azkaban.webapp.plugin.TriggerPlugin;
 import azkaban.webapp.plugin.ViewerPlugin;
-import azkaban.webapp.servlet.AbstractAzkabanServlet;
-import azkaban.webapp.servlet.ExecutorServlet;
-import azkaban.webapp.servlet.FlowTriggerInstanceServlet;
-import azkaban.webapp.servlet.FlowTriggerServlet;
-import azkaban.webapp.servlet.HistoryServlet;
-import azkaban.webapp.servlet.IndexRedirectServlet;
-import azkaban.webapp.servlet.JMXHttpServlet;
-import azkaban.webapp.servlet.NoteServlet;
-import azkaban.webapp.servlet.ProjectManagerServlet;
-import azkaban.webapp.servlet.ProjectServlet;
-import azkaban.webapp.servlet.ScheduleServlet;
-import azkaban.webapp.servlet.StatsServlet;
-import azkaban.webapp.servlet.StatusServlet;
-import azkaban.webapp.servlet.TriggerManagerServlet;
 import com.webank.wedatasphere.schedulis.common.executor.ExecutionCycle;
 import com.webank.wedatasphere.schedulis.common.executor.ExecutorManagerHA;
 import com.webank.wedatasphere.schedulis.common.jmx.JmxExecutorManagerAdapter;
@@ -796,6 +783,7 @@ public class AzkabanWebServer extends AzkabanServer {
 
     root.addServlet(new ServletHolder(new ProjectManagerServlet()), "/manager");
     root.addServlet(new ServletHolder(new ExecutorServlet()), "/executor");
+    root.addServlet(new ServletHolder(new ReExeDepFlowServlet()), "/reExeDepflow");
     root.addServlet(new ServletHolder(new HistoryServlet()), "/history");
     root.addServlet(new ServletHolder(new ScheduleServlet()), "/schedule");
     root.addServlet(new ServletHolder(new JMXHttpServlet()), "/jmx");

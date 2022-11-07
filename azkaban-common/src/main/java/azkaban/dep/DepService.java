@@ -164,7 +164,54 @@ public class DepService {
 
 
     }
+    public int submitExecution(DepFlowInstance depFlowInstance, ExecutionOptions options) throws ExecutorManagerException {
 
+        int projectId = depFlowInstance.getProjectId();
+        String flowId = depFlowInstance.getFlowId();
+
+
+        final Project project = this.projectManager.getProject(projectId);
+        final Flow flow = project.getFlow(flowId);
+        final ExecutableFlow exflow = FlowUtils.createExecutableFlow(project, flow);
+
+
+        exflow.setExecutionOptions(options);
+        if (!options.isFailureEmailsOverridden()) {
+            options.setFailureEmails(flow.getFailureEmails());
+        }
+        if (!options.isSuccessEmailsOverridden()) {
+            options.setSuccessEmails(flow.getSuccessEmails());
+        }
+        options.setMailCreator(flow.getMailCreator());
+
+
+        final String userId = project.getCreateUser();
+        //获取项目默认代理用户
+        Set<String> proxyUserSet = project.getProxyUsers();
+        //设置用户代理用户
+        proxyUserSet.add(userId);
+        //设置代理用户
+        exflow.addAllProxyUsers(proxyUserSet);
+
+        // set paramter
+        Map<String, String> flowParameters = this.calcFlowParameters(depFlowInstance);
+        exflow.getExecutionOptions().getFlowParameters().putAll(flowParameters);
+
+        final String message = this.executorManagerAdapter.submitExecutableFlow(exflow, userId);
+
+        logger.info("submit flow execution finish,message:{}", message);
+
+        try {
+            this.depDao.updateStatusForModifyAndRetriedIntance(depFlowInstance, exflow);
+            logger.info("DepFlowInstance changed to status SUBMITTED success,exeId:{},{}", exflow.getExecutionId(), depFlowInstance);
+        } catch (Exception e) {
+            String errMsg = String.format("depService submitExecution resolve failed:projectId %d,projectName %s,flowId:%s,exec_id:%d", exflow.getProjectId(), exflow.getProjectName(), exflow.getFlowId(), exflow.getExecutionId());
+            logger.error(errMsg, e);
+        }
+        return exflow.getExecutionId();
+
+
+    }
     public Map<String, String> calcFlowParameters(DepFlowInstance instance) {
         HashMap<String, String> parameters = new HashMap<String, String>();
         LocalDateTime timeId = instance.getTimeId();

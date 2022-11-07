@@ -30,6 +30,7 @@ public interface DepDao {
     int updateFlowInstanceSubmitted(DepFlowInstance depFlowInstance, ExecutableFlow exflow) throws SQLException;
 
     int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException;
+    int updateStatusForModifyAndRetriedIntance(DepFlowInstance instance, ExecutableFlow exflow) throws SQLException;
 
     int redoDepFlowInstanceForCron(DepFlowInstance instance, int executionId) throws SQLException;
 

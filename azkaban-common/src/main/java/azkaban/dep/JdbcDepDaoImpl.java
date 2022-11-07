@@ -66,6 +66,7 @@ public class JdbcDepDaoImpl implements DepDao {
     static final String QUERY_DEP_FLOW_INSTANCE_BY_STATUS = "select * from dep_flow_instance where status=? limit ?";
     static final String UPATE_SUBMITTED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ?";
     static final String UPATE_REDOED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
+    static final String UPATE_MODIFY_AND_RERETRIED_DEP_INSTANCE = "update dep_flow_instance set status=?,exec_id=?,modify_time=now() where id=? and status= ? and modify_time=?";
     static final String INTERT_DEP_FLOW_RELATION = "INSERT INTO dep_flow_relation(depended_project_id, depended_flow_id, project_id, flow_id, create_user,create_time, modify_time)VALUES(?, ?, ?, ?, ?, ?,?)";
 
     static final String QUERY_DEP_FLOW_RELATION_BY_LOGIC_KEY = "SELECT * FROM dep_flow_relation WHERE depended_project_id=? AND  depended_flow_id = ? AND   project_id = ? AND  flow_id = ?";
@@ -157,6 +158,12 @@ public class JdbcDepDaoImpl implements DepDao {
 
     public int updateStatusForRedoedIntance(DepFlowInstance instance) throws SQLException {
         int effectRows = this.dbOperator.update(UPATE_REDOED_DEP_INSTANCE, DepFlowInstanceStatus.INIT.getValue(), null, instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
+        return effectRows;
+    }
+
+    @Override
+    public int updateStatusForModifyAndRetriedIntance(DepFlowInstance instance, ExecutableFlow exflow) throws SQLException {
+        int effectRows = this.dbOperator.update(UPATE_MODIFY_AND_RERETRIED_DEP_INSTANCE, DepFlowInstanceStatus.SUBMITTED.getValue(), exflow.getExecutionId(), instance.getId(), instance.getStatus().getValue(), Timestamp.from(instance.getModifyTime()));
         return effectRows;
     }
 

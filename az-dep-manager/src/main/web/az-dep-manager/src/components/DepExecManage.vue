@@ -18,6 +18,11 @@
           </a-popconfirm>
           <a-divider type="vertical" />
           <a
+            :href="'/reExeDepflow?execid='+record.execId+'&depInstId='+record.id"
+            :disabled="record.status in ['INIT','READY']"
+          >定制重做</a>          
+          <a-divider type="vertical" />
+          <a
             :href="'/executor?execid='+record.execId"
             :disabled="record.status in ['INIT','READY']"
           >执行详情</a>
