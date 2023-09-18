@@ -64,7 +64,76 @@ public class MySQLDataSource extends AzkabanDataSource {
     setTestWhileIdle(true);
     setTimeBetweenEvictionRunsMillis(1000*60*1);
     setMinEvictableIdleTimeMillis(1000*60*5);
-    setMaxConnLifetimeMillis(1000*60*10); 
+    setMaxConnLifetimeMillis(1000*60*10);
+    this.initSettingsFromProps(props);
+  }
+
+  private void initSettingsFromProps(Props props){
+
+    if(props.containsKey("mysql.initialSize")){
+      setInitialSize(props.getInt("mysql.initialSize"));
+    }
+
+    if(props.containsKey("mysql.maxTotal")){
+      setMaxTotal(props.getInt("mysql.maxTotal"));
+    }
+
+    if(props.containsKey("mysql.c")){
+      setMaxIdle(props.getInt("mysql.maxIdle"));
+    }
+
+    if(props.containsKey("mysql.minIdle")){
+      setMinIdle(props.getInt("mysql.minIdle"));
+    }
+
+    if(props.containsKey("mysql.maxWaitMillis")){
+      setMaxWaitMillis(props.getLong("mysql.maxWaitMillis"));
+    }
+
+    if(props.containsKey("mysql.validationQuery")){
+      setValidationQuery(props.getString("mysql.validationQuery"));
+    }
+
+    if(props.containsKey("mysql.validationQueryTimeout")){
+      setValidationQueryTimeout(props.getInt("mysql.validationQueryTimeout"));
+    }
+
+    if(props.containsKey("mysql.testOnCreate")){
+      setTestOnCreate(props.getBoolean("mysql.testOnCreate"));
+    }
+
+    if(props.containsKey("mysql.testOnBorrow")){
+      setTestOnBorrow(props.getBoolean("mysql.testOnBorrow"));
+    }
+
+    if(props.containsKey("mysql.testOnReturn")){
+      setTestOnReturn(props.getBoolean("mysql.testOnReturn"));
+    }
+
+    if(props.containsKey("mysql.testWhileIdle")){
+      setTestWhileIdle(props.getBoolean("mysql.testWhileIdle"));
+    }
+
+    if(props.containsKey("mysql.timeBetweenEvictionRunsMillis")){
+      setTimeBetweenEvictionRunsMillis(props.getLong("mysql.timeBetweenEvictionRunsMillis"));
+    }
+
+    if(props.containsKey("mysql.numTestsPerEvictionRun")){
+      setNumTestsPerEvictionRun(props.getInt("mysql.numTestsPerEvictionRun"));
+    }
+
+    if(props.containsKey("mysql.minEvictableIdleTimeMillis")){
+      setMinEvictableIdleTimeMillis(props.getLong("mysql.minEvictableIdleTimeMillis"));
+    }
+
+    if(props.containsKey("mysql.softMinEvictableIdleTimeMillis")){
+      setSoftMinEvictableIdleTimeMillis(props.getLong("mysql.softMinEvictableIdleTimeMillis"));
+    }
+
+    if(props.containsKey("mysql.maxConnLifetimeMillis")){
+      setMaxConnLifetimeMillis(props.getLong("mysql.maxConnLifetimeMillis"));
+    }
+
   }
   /**
    * This method overrides {@link BasicDataSource#getConnection()}, in order to have retry logics.
